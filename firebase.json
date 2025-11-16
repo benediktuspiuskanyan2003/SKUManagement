@@ -1,0 +1,18 @@
+
+{
+  "hosting": {
+    "source": ".",
+    "rewrites": [
+      {
+        "source": "**",
+        "app": {
+          "serviceId": "skumanagement"
+        }
+      }
+    ]
+  },
+  "backend": {
+    "serviceId": "skumanagement",
+    "entryPoint": "gunicorn --workers 1 --bind :$PORT main:app"
+  }
+}

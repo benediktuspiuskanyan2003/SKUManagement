@@ -1,2 +1,4 @@
-
-requests
+Flask
+supabase
+python-dotenv
+gunicorn
