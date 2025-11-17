@@ -86,7 +86,14 @@ def enrich_with_ai():
             raise ValueError("Respons dari AI tidak berisi data JSON setelah dibersihkan.")
 
         product_data = json.loads(cleaned_response)
-        return jsonify(product_data)
+
+        # --- PERUBAHAN: Ubah semua nilai string ke UPPERCASE sebelum mengirim ---
+        uppercased_data = {
+            key: value.upper() if isinstance(value, str) else value
+            for key, value in product_data.items()
+        }
+
+        return jsonify(uppercased_data)
 
     except Exception as e:
         error_message = f'Gagal memproses permintaan AI. Detail: {str(e)}'

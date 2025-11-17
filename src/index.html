@@ -15,8 +15,10 @@
             --secondary-hover-color: #5a6268;
             --danger-color: #dc3545;
             --danger-hover-color: #c82333;
-            --success-color: #28a745; /* Warna baru untuk tombol Scan */
+            --success-color: #28a745; 
             --success-hover-color: #218838;
+            --info-color: #17a2b8; /* Warna untuk tombol Keranjang */
+            --info-hover-color: #138496;
             --background-color: #f8f9fa;
             --surface-color: #ffffff;
             --text-color: #333;
@@ -45,8 +47,11 @@
             box-sizing: border-box;
         }
 
-        h1, h2 {
+        h1, h2, h3 {
             text-align: center;
+        }
+
+        h1 {
             margin-bottom: 20px;
         }
 
@@ -56,7 +61,7 @@
 
         .search-box {
             display: flex;
-            flex-wrap: wrap; /* Agar responsif di layar kecil */
+            flex-wrap: wrap;
             gap: 10px;
         }
 
@@ -66,7 +71,8 @@
             border: 1px solid var(--border-color);
             border-radius: var(--border-radius);
             font-size: 16px;
-            min-width: 200px; /* Lebar minimum untuk input */
+            min-width: 200px;
+            text-transform: uppercase;
         }
 
         .btn {
@@ -77,49 +83,33 @@
             font-weight: 500;
             cursor: pointer;
             transition: background-color 0.2s;
-            background-color: var(--primary-color);
             color: white;
+            background-color: var(--primary-color);
         }
 
-        .btn:hover {
-            background-color: var(--primary-hover-color);
-        }
+        .btn:hover { background-color: var(--primary-hover-color); }
+        .btn-secondary { background-color: var(--secondary-color); }
+        .btn-secondary:hover { background-color: var(--secondary-hover-color); }
+        .btn-danger { background-color: var(--danger-color); }
+        .btn-danger:hover { background-color: var(--danger-hover-color); }
+        .btn-success { background-color: var(--success-color); }
+        .btn-success:hover { background-color: var(--success-hover-color); }
+        .btn-info { background-color: var(--info-color); }
+        .btn-info:hover { background-color: var(--info-hover-color); }
 
-        .btn-secondary {
-            background-color: var(--secondary-color);
-        }
-
-        .btn-secondary:hover {
-            background-color: var(--secondary-hover-color);
-        }
-        
-        .btn-danger {
-            background-color: var(--danger-color);
-        }
-        .btn-danger:hover {
-            background-color: var(--c82333);
-        }
-
-        .btn-success {
-            background-color: var(--success-color);
-        }
-        .btn-success:hover {
-            background-color: var(--success-hover-color);
-        }
-
-        #results-table {
+        #results-table, #cart-table {
             width: 100%;
             border-collapse: collapse;
             margin-top: 20px;
         }
 
-        #results-table th, #results-table td {
+        #results-table th, #results-table td, #cart-table th, #cart-table td {
             border: 1px solid var(--border-color);
             padding: 12px;
             text-align: left;
         }
 
-        #results-table th {
+        #results-table th, #cart-table th {
             background-color: #f2f2f2;
         }
 
@@ -129,104 +119,26 @@
             margin: 10px 0;
             text-align: center;
         }
-        .message-info {
-            background-color: #e2f3ff;
-            border: 1px solid #b6e0ff;
-            color: #004085;
-        }
-        .message-error {
-            background-color: #f8d7da;
-            border: 1px solid #f5c6cb;
-            color: #721c24;
-        }
+        .message-info { background-color: #e2f3ff; border: 1px solid #b6e0ff; color: #004085; }
+        .message-error { background-color: #f8d7da; border: 1px solid #f5c6cb; color: #721c24; }
 
         /* Form Styling */
-        #product-form {
-            border: 1px solid var(--border-color);
-            border-radius: var(--border-radius);
-            padding: 20px;
-        }
+        #product-form { border: 1px solid var(--border-color); border-radius: var(--border-radius); padding: 20px; }
+        .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; }
+        .form-group { display: flex; flex-direction: column; }
+        .form-group label { margin-bottom: 5px; font-weight: 500; }
+        .form-group input { padding: 10px; border: 1px solid var(--border-color); border-radius: var(--border-radius); font-size: 14px; box-sizing: border-box; width: 100%; height: 40px; text-transform: uppercase; }
+        .form-buttons { margin-top: 20px; display: flex; justify-content: flex-end; gap: 10px; }
 
-        .form-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 20px;
-        }
+        .input-wrapper { position: relative; display: flex; align-items: center; }
+        .input-wrapper input { padding-right: 35px; }
+        .clear-btn { position: absolute; right: 1px; top: 1px; bottom: 1px; border: none; background-color: transparent; width: 38px; height: 38px; cursor: pointer; font-size: 22px; color: #999; line-height: 38px; text-align: center; }
+        .clear-btn:hover { color: #333; }
 
-        .form-group {
-            display: flex;
-            flex-direction: column;
-        }
-
-        .form-group label {
-            margin-bottom: 5px;
-            font-weight: 500;
-        }
-
-        .form-group input {
-            padding: 10px;
-            border: 1px solid var(--border-color);
-            border-radius: var(--border-radius);
-            font-size: 14px;
-            box-sizing: border-box;
-            width: 100%;
-            height: 40px;
-        }
-        
-        .form-buttons {
-            margin-top: 20px;
-            display: flex;
-            justify-content: flex-end;
-            gap: 10px;
-        }
-
-        .input-wrapper {
-            position: relative;
-            display: flex;
-            align-items: center;
-        }
-
-        .input-wrapper input {
-            padding-right: 35px; 
-        }
-        
-        .clear-btn {
-            position: absolute;
-            right: 1px;
-            top: 1px;
-            bottom: 1px;
-            border: none;
-            background-color: transparent;
-            width: 38px;
-            height: 38px;
-            cursor: pointer;
-            font-size: 22px;
-            color: #999;
-            line-height: 38px;
-            text-align: center;
-        }
-
-        .clear-btn:hover {
-            color: #333;
-        }
-
-        /* --- STYLE BARU UNTUK SCANNER --- */
-        #scanner-container {
-            padding: 20px;
-            border: 1px solid var(--border-color);
-            border-radius: var(--border-radius);
-            background: #fff;
-        }
-        #qr-reader {
-            width: 100%;
-            max-width: 500px;
-            margin: 0 auto;
-        }
-        #scanner-container .scanner-buttons {
-            text-align: center;
-            margin-top: 15px;
-        }
-        /* ------------------------------- */
+        /* Scanner Styling */
+        #scanner-container { padding: 20px; border: 1px solid var(--border-color); border-radius: var(--border-radius); background: #fff; }
+        #qr-reader { width: 100%; max-width: 500px; margin: 0 auto; }
+        #scanner-container .scanner-buttons { text-align: center; margin-top: 15px; }
 
     </style>
 </head>
@@ -234,29 +146,24 @@
     <div class="container">
         <h1>Manajemen SKU</h1>
         
-        <!-- Kontainer untuk scanner, awalnya disembunyikan -->
         <div id="scanner-container" style="display:none;">
             <div id="qr-reader"></div>
-            <div class="scanner-buttons">
-                <button class="btn btn-danger" onclick="stopScanner()">Tutup Scanner</button>
-            </div>
+            <div class="scanner-buttons"><button class="btn btn-danger" onclick="stopScanner()">Tutup Scanner</button></div>
         </div>
 
-        <!-- Konten utama aplikasi -->
         <div id="main-content">
             <div id="search-section">
                 <div class="search-box">
-                    <input type="text" id="search-input" placeholder="Cari SKU / Nama atau Scan Barcode...">
-                    <!-- TOMBOL BARU DITAMBAHKAN -->
+                    <input type="text" id="search-input" placeholder="CARI SKU / NAMA ATAU SCAN BARCODE...">
                     <button class="btn btn-success" onclick="startScanner()">Scan</button>
                     <button class="btn" onclick="searchProduct()">Cari</button>
                     <button class="btn btn-secondary" onclick="showAddProductForm()">Tambah Manual</button>
                 </div>
             </div>
             
-            <div id="results-section">
-                <!-- Hasil pencarian atau form tambah/edit akan muncul di sini -->
-            </div>
+            <div id="results-section"></div>
+            
+            <div id="cart-section"></div>
         </div>
     </div>
 
@@ -265,54 +172,124 @@
         const resultsDiv = document.getElementById('results-section');
         const mainContent = document.getElementById('main-content');
         const scannerContainer = document.getElementById('scanner-container');
+        const cartSection = document.getElementById('cart-section');
         
         let editingSku = null;
-        let html5QrCode = null; // Variabel global untuk instance scanner
+        let html5QrCode = null;
+        let cart = []; 
 
-        // --- LOGIKA BARU UNTUK SCANNER KAMERA ---
+        // --- FUNGSI BARU UNTUK MENYIMPAN KERANJANG KE LOCAL STORAGE ---
+        function saveCart() {
+            localStorage.setItem('skuManagementCart', JSON.stringify(cart));
+        }
+
+        function addToCart(product) {
+            if (cart.some(p => p.SKU === product.SKU)) {
+                alert('Produk ini sudah ada di keranjang.');
+                return;
+            }
+            cart.push(product);
+            saveCart(); // Simpan perubahan
+            displayCart();
+        }
+
+        function removeFromCart(sku) {
+            cart = cart.filter(p => p.SKU !== sku);
+            saveCart(); // Simpan perubahan
+            displayCart();
+        }
+
+        function clearCart() {
+            if(confirm('Apakah Anda yakin ingin mengosongkan keranjang?')){
+                cart = [];
+                saveCart(); // Simpan perubahan
+                displayCart();
+            }
+        }
+
+        function displayCart() {
+            if (cart.length === 0) {
+                cartSection.innerHTML = '';
+                return;
+            }
+
+            let table = `<h3>Keranjang (${cart.length})</h3><table id="cart-table">
+                <thead><tr><th>SKU</th><th>Nama Produk</th><th>Aksi</th></tr></thead>
+                <tbody>`;
+            
+            cart.forEach(p => {
+                table += `
+                    <tr>
+                        <td>${p.SKU}</td>
+                        <td>${p.ITEMS_NAME}</td>
+                        <td><button class="btn btn-danger btn-sm" onclick="removeFromCart('${p.SKU}')">Hapus</button></td>
+                    </tr>`;
+            });
+
+            table += `</tbody></table>`;
+            table += `
+                <div class="form-buttons">
+                    <button class="btn btn-info" onclick="downloadCSV()">Unduh CSV</button>
+                    <button class="btn btn-danger" onclick="clearCart()">Kosongkan Keranjang</button>
+                </div>`;
+            cartSection.innerHTML = table;
+        }
+
+        // --- FUNGSI UNDUH CSV DIPERBAIKI ---
+        function downloadCSV() {
+            const headers = ['SKU', 'ITEMS_NAME', 'CATEGORY', 'BRAND_NAME', 'VARIANT_NAME', 'PRICE'];
+            let csvContent = "data:text/csv;charset=utf-8," + headers.join(",") + "\n";
+
+            cart.forEach(product => {
+                const row = headers.map(header => {
+                    let value = product[header];
+                    if (value === null || value === undefined) value = '';
+                    
+                    const stringValue = String(value);
+                    // Jika ada koma atau kutip, bungkus dengan kutip ganda dan escape kutip ganda di dalamnya
+                    if (stringValue.includes(',') || stringValue.includes('"')) {
+                        return `"${stringValue.replace(/"/g, '""')}"`;
+                    }
+                    return stringValue;
+                });
+                csvContent += row.join(",") + "\n";
+            });
+
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", "produk_keranjang.csv");
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
         function startScanner() {
             mainContent.style.display = 'none';
             scannerContainer.style.display = 'block';
-            resultsDiv.innerHTML = ''; // Bersihkan hasil sebelumnya
-
-            if (!html5QrCode) {
-                html5QrCode = new Html5Qrcode("qr-reader");
-            }
-
-            const qrCodeSuccessCallback = (decodedText, decodedResult) => {
+            resultsDiv.innerHTML = '';
+            html5QrCode = new Html5Qrcode("qr-reader");
+            const success = (decodedText) => {
                 stopScanner();
-                searchInput.value = decodedText; // Masukkan hasil scan ke input
-                searchProduct(); // Jalankan pencarian AI/biasa
+                searchInput.value = decodedText;
+                searchProduct();
             };
-
-            const config = { fps: 10, qrbox: { width: 250, height: 250 } };
-            
-            // Coba mulai scanner
-            html5QrCode.start({ facingMode: "environment" }, config, qrCodeSuccessCallback)
+            html5QrCode.start({ facingMode: "environment" }, { fps: 10, qrbox: { width: 250, height: 250 } }, success)
                 .catch(err => {
-                    console.error("Gagal memulai scanner", err);
                     alert("Gagal memulai scanner. Pastikan Anda memberikan izin kamera.");
                     stopScanner();
                 });
         }
 
         function stopScanner() {
-            if (html5QrCode && html5QrCode.isScanning) {
-                html5QrCode.stop().catch(err => {
-                    console.error("Gagal menghentikan scanner dengan benar.", err);
-                });
-            }
+            if (html5QrCode && html5QrCode.isScanning) html5QrCode.stop();
             mainContent.style.display = 'block';
             scannerContainer.style.display = 'none';
         }
-        // ----------------------------------------
 
         function clearInput(inputId) {
-            const inputElement = document.getElementById(inputId);
-            if(inputElement) {
-                inputElement.value = '';
-                inputElement.focus();
-            }
+            document.getElementById(inputId).value = '';
+            document.getElementById(inputId).focus();
         }
 
         function showSearch() {
@@ -326,68 +303,43 @@
         async function searchProduct() {
             const query = searchInput.value.trim();
             if (!query) return;
-
-            if (/^\d{8,}$/.test(query)) { // Sedikit dilonggarkan untuk berbagai jenis barcode
-                resultsDiv.innerHTML = `<p style="text-align:center;">🤖 Mencari data dengan AI untuk barcode ${query}, mohon tunggu...</p>`;
-                
-                try {
-                    const response = await fetch(`/api/enrich_with_ai?sku=${encodeURIComponent(query)}`);
-                    const result = await response.json();
-    
-                    if (!response.ok) {
-                        throw new Error(result.error || 'Gagal mengambil data dari AI.');
-                    }
-    
-                    showAddProductForm(result);
-    
-                } catch (error) {
-                    resultsDiv.innerHTML = `<p class="message-error" style="text-align:center;">Error: ${error.message}</p>
-                    <div class="form-buttons" style="justify-content: center;">
-                        <button class="btn btn-secondary" onclick="showAddProductForm({ SKU: query })">Coba Isi Manual Saja</button>
-                    </div>`;
-                }
-            } else {
-                 try {
-                    const response = await fetch(`/api/search?q=${encodeURIComponent(query)}`);
-                    const products = await response.json();
+            resultsDiv.innerHTML = `<p style="text-align:center;">Mencari di database lokal...</p>`;
+            try {
+                const searchResponse = await fetch(`/api/search?q=${encodeURIComponent(query)}`);
+                const products = await searchResponse.json();
+                if (products.length > 0) {
                     displayResults(products);
-                } catch (error) {
-                    resultsDiv.innerHTML = `<p class="message-error">Gagal mengambil data. Coba lagi nanti.</p>`;
+                } else {
+                    if (/^\d{8,}$/.test(query)) {
+                        resultsDiv.innerHTML = `<p style="text-align:center;">Produk tidak ditemukan. 🤖 Mencari data online dengan AI...</p>`;
+                        const aiResponse = await fetch(`/api/enrich_with_ai?sku=${encodeURIComponent(query)}`);
+                        const result = await aiResponse.json();
+                        if (!aiResponse.ok) throw new Error(result.error || 'Gagal dari AI.');
+                        showAddProductForm(result);
+                    } else {
+                        resultsDiv.innerHTML = `<p class="message-info">Tidak ada produk yang cocok ditemukan.</p>`;
+                    }
                 }
+            } catch (error) {
+                resultsDiv.innerHTML = `<p class="message-error">Terjadi kesalahan: ${error.message}</p>`;
             }
         }
 
         function displayResults(products) {
-            if (products.length === 0) {
-                resultsDiv.innerHTML = `<p class="message-info">Tidak ada produk yang cocok ditemukan.</p>`;
-                return;
-            }
-
-            let table = `<table id="results-table">
-                <thead>
-                    <tr>
-                        <th>SKU</th>
-                        <th>Nama Produk</th>
-                        <th>Kategori</th>
-                        <th>Merek</th>
-                        <th>Harga</th>
-                        <th>Aksi</th>
-                    </tr>
-                </thead>
-                <tbody>`;
-            
+            let table = `<table id="results-table"><thead><tr><th>SKU</th><th>Nama Produk</th><th>Kategori</th><th>Harga</th><th>Aksi</th></tr></thead><tbody>`;
             products.forEach(p => {
                 table += `
                     <tr>
                         <td>${p.SKU}</td>
                         <td>${p.ITEMS_NAME}</td>
                         <td>${p.CATEGORY}</td>
-                        <td>${p.BRAND_NAME}</td>
                         <td>${p.PRICE ? new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(p.PRICE) : ''}</td>
-                        <td><button class="btn btn-secondary" onclick='editProduct(${JSON.stringify(p)})'>Edit</button></td>
+                        <td>
+                            <button class="btn btn-secondary btn-sm" onclick='editProduct(${JSON.stringify(p)})'>Edit</button>
+                            <button class="btn btn-info btn-sm" onclick='addToCart(${JSON.stringify(p)})'>+ Keranjang</button>
+                        </td>
                     </tr>`;
             });
-
             table += `</tbody></table>`;
             resultsDiv.innerHTML = table;
         }
@@ -400,28 +352,19 @@
         function showAddProductForm(product = {}) {
             const isUpdate = product && product.SKU && editingSku;
             const skuValue = product?.SKU || searchInput.value.match(/^\d+$/) ? searchInput.value : '';
-
             function createInput(id, label, value = '', disabled = false) {
                  const finalValue = (value === null || value === undefined) ? '' : value;
-                 if (disabled) {
-                     return `
-                        <div class="form-group">
-                            <label for="${id}">${label}</label>
-                            <input type="text" id="${id}" value="${finalValue}" disabled>
-                        </div>
-                     `;
-                 }
+                 const disabledAttr = disabled ? 'disabled' : '';
                  return `
                     <div class="form-group">
                         <label for="${id}">${label}</label>
                         <div class="input-wrapper">
-                            <input type="${id === 'PRICE' ? 'number' : 'text'}" id="${id}" value="${finalValue}">
-                            <button class="clear-btn" onclick="clearInput('${id}')" type="button">&times;</button>
+                            <input type="${id === 'PRICE' ? 'number' : 'text'}" id="${id}" value="${finalValue}" ${disabledAttr}> 
+                            ${!disabled ? `<button class="clear-btn" onclick="clearInput('${id}')" type="button">&times;</button>` : ''}
                         </div>
                     </div>
                  `;
             }
-
             resultsDiv.innerHTML = `
                 <div id="product-form">
                     <h3>${isUpdate ? 'Edit Produk' : 'Tambah Produk Baru'}</h3>
@@ -434,12 +377,12 @@
                         ${createInput('PRICE', 'Harga', product?.PRICE)}
                     </div>
                     <div class="form-buttons">
-                        <button class="btn" onclick="${isUpdate ? `submitUpdate('${product.SKU}')` : 'submitProduct()'}">${isUpdate ? 'Simpan Perubahan' : 'Simpan Produk'}</button>
+                        <button class="btn" onclick="${isUpdate ? `submitUpdate('${product.SKU}')` : 'submitProduct()'}">${isUpdate ? 'Simpan Perubahan' : 'Simpan'}</button>
                         <button class="btn btn-secondary" onclick="showSearch()">Batal</button>
                     </div>
                 </div>
             `;
-            document.getElementById('search-input').value = '';
+            searchInput.value = '';
         }
 
         async function submitProduct() {
@@ -451,16 +394,10 @@
                 VARIANT_NAME: document.getElementById('VARIANT_NAME').value,
                 PRICE: document.getElementById('PRICE').value,
             };
-
             try {
-                const response = await fetch('/api/add_product', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(productData)
-                });
+                const response = await fetch('/api/add_product', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(productData) });
                 const result = await response.json();
-                if (!response.ok) throw new Error(result.error || 'Gagal menyimpan data.');
-
+                if (!response.ok) throw new Error(result.error || 'Gagal menyimpan.');
                 alert('Produk berhasil ditambahkan!');
                 showSearch();
             } catch (error) {
@@ -477,16 +414,10 @@
                 VARIANT_NAME: document.getElementById('VARIANT_NAME').value,
                 PRICE: document.getElementById('PRICE').value,
             };
-
             try {
-                const response = await fetch('/api/update_product', {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(productData)
-                });
+                const response = await fetch('/api/update_product', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(productData) });
                 const result = await response.json();
-                if (!response.ok) throw new Error(result.error || 'Gagal memperbarui data.');
-
+                if (!response.ok) throw new Error(result.error || 'Gagal memperbarui.');
                 alert('Produk berhasil diperbarui!');
                 showSearch();
             } catch (error) {
@@ -494,14 +425,19 @@
             }
         }
 
-        searchInput.addEventListener('keyup', function(event) {
-            if (event.key === 'Enter') {
-                searchProduct();
-            }
-        });
+        searchInput.addEventListener('keyup', (event) => { if (event.key === 'Enter') searchProduct(); });
 
-        // Initial state
-        showSearch();
+        // --- FUNGSI UNTUK MEMUAT KERANJANG SAAT HALAMAN DIBUKA ---
+        function initializeApp() {
+            const savedCart = localStorage.getItem('skuManagementCart');
+            if (savedCart) {
+                cart = JSON.parse(savedCart);
+            }
+            displayCart();
+            showSearch();
+        }
+
+        initializeApp(); // Jalankan fungsi inisialisasi
     </script>
 </body>
 </html>
