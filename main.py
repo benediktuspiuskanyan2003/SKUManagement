@@ -70,43 +70,39 @@ def update_product():
     if not sku:
         return jsonify({'error': 'SKU diperlukan untuk update'}), 400
 
-    try:
-        price_str = product_data.get('PRICE')
-        if price_str and str(price_str).strip():
-            product_data['PRICE'] = float(price_str)
+    # --- LOGIKA BARU YANG LEBIH AMAN ---
+    update_data = {}
+
+    # 1. Proses semua field yang berupa teks.
+    for field in ['ITEMS_NAME', 'CATEGORY', 'BRAND_NAME', 'VARIANT_NAME']:
+        if field in product_data and product_data[field] is not None:
+            update_data[field] = str(product_data[field]).upper()
         else:
-            product_data['PRICE'] = None
+            # Pastikan field yang kosong atau tidak ada dikirim sebagai null
+            update_data[field] = None
+
+    # 2. Proses field PRICE secara terpisah dan eksplisit.
+    try:
+        price_value = product_data.get('PRICE')
+        if price_value and str(price_value).strip():
+            update_data['PRICE'] = float(price_value)
+        else:
+            update_data['PRICE'] = None
     except (ValueError, TypeError):
         return jsonify({'error': 'Harga harus berupa angka yang valid'}), 400
-
-    update_data = {
-        key: value.upper() if isinstance(value, str) else value
-        for key, value in product_data.items() if key != 'SKU'
-    }
+    # --- AKHIR LOGIKA BARU ---
 
     try:
-        # Gunakan count='exact' untuk mendapatkan jumlah baris yang cocok
-        response = supabase.table('products').update(update_data).eq('SKU', sku).execute()
+        # Gunakan `update_data` yang sudah bersih.
+        supabase.table('products').update(update_data).eq('SKU', sku).execute()
 
-        # Periksa dulu apakah ada error eksplisit dari Supabase
-        if hasattr(response, 'error') and response.error:
-            return jsonify({'error': response.error.message}), 400
-        
-        # Periksa apakah data berhasil diupdate atau tidak ada perubahan (dianggap sukses)
-        # response.data akan berisi data jika ada perubahan
-        if response.data:
-            return jsonify({'success': True, 'data': response.data}), 200
+        # Selalu ambil data terbaru dari database sebagai sumber kebenaran.
+        fetch_response = supabase.table('products').select('*').eq('SKU', sku).single().execute()
+
+        if fetch_response.data:
+            return jsonify({'success': True, 'data': [fetch_response.data]}), 200
         else:
-            # Jika response.data kosong, kita cek apakah SKU-nya memang ada.
-            # Ini mencegah pesan error jika pengguna hanya menekan simpan tanpa mengubah data.
-            check_response = supabase.table('products').select('SKU', count='exact').eq('SKU', sku).execute()
-            if check_response.count > 0:
-                # SKU ada, jadi anggap sukses (tidak ada perubahan data)
-                # Mengembalikan data yang dikirim oleh pengguna untuk konsistensi UI
-                return jsonify({'success': True, 'data': [product_data]}), 200
-            else:
-                # SKU benar-benar tidak ditemukan
-                return jsonify({'error': 'Gagal memperbarui produk. SKU tidak ditemukan.'}), 404
+            return jsonify({'error': 'Gagal menyimpan. SKU tidak ditemukan di database.'}), 404
 
     except Exception as e:
         print(f"Error updating data in Supabase: {e}")

@@ -21,6 +21,7 @@
         .product-category { font-size: 0.8rem; color: #667; background-color: #f0f0f0; padding: 2px 6px; border-radius: 4px; margin-bottom: 0.5rem; align-self: flex-start; }
         .product-sku { font-weight: bold; color: #0056b3; font-size: 1.1rem; }
         .product-name { font-size: 1rem; color: #555; }
+        .product-price { font-size: 1.1rem; font-weight: 600; color: #28a745; margin-top: 0.25rem; }
         .product-brand { font-size: 0.9rem; color: #888; margin-top: 0.5rem; }
         #add-product-section { display: none; margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid #eee; }
         .form-group { margin-bottom: 1rem; }
@@ -127,6 +128,18 @@
         let isEditMode = false;
         const html5QrCode = new Html5Qrcode("reader");
 
+        function formatCurrency(value) {
+            if (value === null || value === undefined || isNaN(value)) {
+                return ''; // Return empty string if price is not available
+            }
+            return new Intl.NumberFormat('id-ID', {
+                style: 'currency', 
+                currency: 'IDR', 
+                minimumFractionDigits: 0,
+                maximumFractionDigits: 0 
+            }).format(value);
+        }
+
         const onScanSuccess = (decodedText, decodedResult) => {
             const query = decodedText.trim().toUpperCase();
             searchInput.value = query;
@@ -169,12 +182,14 @@
             }
             resultsDiv.innerHTML = products.map(p => {
                 const productJSON = JSON.stringify(p).replace(/'/g, "\'");
+                const formattedPrice = formatCurrency(p.PRICE);
                 return `
                 <div class="product-item">
                     <div class="product-details">
                         <div class="product-category">${p.CATEGORY || ''}</div>
                         <div class="product-sku">${p.SKU}</div>
                         <div class="product-name">${p.ITEMS_NAME}</div>
+                        <div class="product-price">${formattedPrice}</div>
                         <div class="product-brand">${p.BRAND_NAME || ''} - ${p.VARIANT_NAME || ''}</div>
                     </div>
                     <div class="product-item-actions">
@@ -186,7 +201,7 @@
         }
         
         function showAddProductForm() {
-            hideAddProductForm(); // Reset form before showing
+            hideAddProductForm();
             isEditMode = false;
             formTitle.textContent = 'Tambahkan Produk Baru';
             formSubmitBtn.textContent = 'Simpan';
@@ -197,12 +212,11 @@
         }
 
         function showEditProductForm(product) {
-            hideAddProductForm(); // Reset form before showing
+            hideAddProductForm();
             isEditMode = true;
             formTitle.textContent = 'Edit Produk';
             formSubmitBtn.textContent = 'Simpan Perubahan';
             
-            // Populate form
             for (const key in product) {
                 if (addProductForm.elements[key]) {
                     addProductForm.elements[key].value = product[key] || '';
@@ -273,10 +287,10 @@
         function exportToCSV() {
             if (cart.length === 0) { alert("Daftar produk masih kosong."); return; }
             const headers = ['CATEGORY', 'SKU', 'ITEMS_NAME', 'BRAND_NAME', 'VARIANT_NAME', 'PRICE'];
-            let csvContent = headers.join(',') + '';
+            let csvContent = headers.join(',') + '\n';
             cart.forEach(item => {
                 const row = headers.map(header => `"${item[header] || ''}"`);
-                csvContent += row.join(',') + '';
+                csvContent += row.join(',') + '\n';
             });
             const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
             const link = document.createElement('a');
@@ -315,7 +329,7 @@
             formMessage.className = '';
 
             try {
-                let response, successMessage;
+                let response, successMessage, updatedProduct;
                 if (isEditMode) {
                     response = await fetch('/api/update_product', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(productData) });
                     successMessage = 'Produk berhasil diperbarui!';
@@ -329,10 +343,13 @@
 
                 formMessage.textContent = successMessage;
                 formMessage.className = 'message-success';
+                
+                updatedProduct = result.data[0];
+
                 setTimeout(() => {
-                    hideAdd-product-form();
-                    searchInput.value = productData.SKU;
-                    fetchProducts(productData.SKU);
+                    hideAddProductForm();
+                    searchInput.value = updatedProduct.SKU;
+                    fetchProducts(updatedProduct.SKU);
                 }, 1500);
 
             } catch (error) {
