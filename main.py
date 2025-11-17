@@ -2,8 +2,8 @@ from flask import Flask, request, jsonify, render_template
 from supabase import create_client, Client
 import os
 import google.generativeai as genai
-# --- IMPORT BARU UNTUK DUCKDUCKGO SEARCH ---
-from duckduckgo_search import DDGS
+# --- IMPORT BARU UNTUK GOOGLE CUSTOM SEARCH API ---
+from googleapiclient.discovery import build
 import json
 
 # Konfigurasi Supabase
@@ -16,13 +16,17 @@ GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
 if GEMINI_API_KEY:
     genai.configure(api_key=GEMINI_API_KEY)
 
+# --- KONFIGURASI BARU UNTUK GOOGLE SEARCH API ---
+GOOGLE_API_KEY = os.environ.get("GOOGLE_API_KEY")
+GOOGLE_CSE_ID = os.environ.get("GOOGLE_CSE_ID")
+
 app = Flask(__name__, static_folder='src', static_url_path='/')
 
 @app.route('/')
 def index():
     return app.send_static_file('index.html')
 
-# --- ENDPOINT AI DENGAN PENCARIAN DUCKDUCKGO ---
+# --- ENDPOINT AI DENGAN PENCARIAN GOOGLE SEARCH API RESMI ---
 @app.route('/api/enrich_with_ai')
 def enrich_with_ai():
     sku = request.args.get('sku', '')
@@ -31,39 +35,42 @@ def enrich_with_ai():
 
     try:
         if not GEMINI_API_KEY:
-            raise ValueError("Kunci API Gemini tidak ditemukan atau tidak dikonfigurasi di environment.")
+            raise ValueError("Kunci API Gemini (GEMINI_API_KEY) tidak ditemukan.")
+        if not GOOGLE_API_KEY or not GOOGLE_CSE_ID:
+            raise ValueError("Kunci Google Search API (GOOGLE_API_KEY) atau CSE ID (GOOGLE_CSE_ID) tidak ditemukan.")
 
-        # LANGKAH 1: Lakukan pencarian DuckDuckGo dengan barcode
-        search_results = []
-        with DDGS() as ddgs:
-            # Mengambil 5 hasil teratas untuk konteks
-            for r in ddgs.text(f'{sku} product information', max_results=5):
-                search_results.append(r)
+        # LANGKAH 1: Lakukan pencarian resmi via Google Custom Search API
+        def google_search(search_term, api_key, cse_id, num=5):
+            service = build("customsearch", "v1", developerKey=api_key)
+            res = service.cse().list(q=search_term, cx=cse_id, num=num).execute()
+            return res.get('items', [])
+
+        search_results = google_search(sku, GOOGLE_API_KEY, GOOGLE_CSE_ID)
         
         if not search_results:
-            return jsonify({'error': 'Tidak ada hasil pencarian yang ditemukan untuk SKU ini.'}), 404
+            return jsonify({'error': 'Tidak ada hasil pencarian Google API yang ditemukan untuk SKU ini.'}), 404
 
-        # Format hasil pencarian menjadi satu string konteks
-        search_context = "\n".join([f"Title: {res.get('title', '')}\nBody: {res.get('body', '')}\nURL: {res.get('href', '')}" for res in search_results])
+        # Format hasil pencarian menjadi konteks untuk AI
+        search_context = "\n".join([f"Title: {res.get('title', '')}\nSnippet: {res.get('snippet', '')}\nURL: {res.get('link', '')}" for res in search_results])
 
         # LANGKAH 2: Berikan konteks ke AI untuk dianalisis
         model = genai.GenerativeModel('gemini-pro-latest')
 
         prompt = f"""
-        Anda adalah asisten data entry yang sangat teliti. Berdasarkan konteks hasil pencarian berikut, identifikasi informasi produk yang paling akurat untuk barcode: {sku}.
+        Anda adalah asisten data entry yang sangat teliti. Berdasarkan konteks hasil pencarian Google berikut, identifikasi informasi produk yang paling akurat untuk barcode: {sku}.
 
         Konteks Hasil Pencarian:
         ---
         {search_context}
         ---
 
-        Tugas Anda adalah menganalisis konteks di atas dan mengembalikan satu objek JSON yang ketat dengan kunci berikut. Jangan mengarang informasi. Jika informasi tidak ada di konteks, kembalikan string kosong "".
+        Tugas Anda adalah menganalisis konteks di atas dan mengembalikan satu objek JSON yang ketat. Jangan mengarang informasi. Jika informasi tidak ada di konteks, kembalikan string kosong "".
 
-        - "ITEMS_NAME": Nama produk utama, digabungkan dengan informasi berat atau volume (contoh: "Gentle Gen Deterjen Tumbuhan Mint Bomb 700 ML").
-        - "CATEGORY": Kategori umum produk (misal: "Deterjen", "Pembersih").
+        - "ITEMS_NAME": Nama produk utama, lengkap dengan berat/volume (contoh: "Gentle Gen Deterjen Tumbuhan Mint Bomb 700 ML").
+        - "CATEGORY": Nama perusahaan produsen (misal: "PT Wings Surya"). Jika nama produsen tidak ditemukan secara eksplisit, gunakan nilai dari "BRAND_NAME" sebagai gantinya.
         - "BRAND_NAME": Merek produk (misal: "Gentle Gen").
-        - "VARIANT_NAME": Satuan unit produk seperti "PCS", "Botol", "Pack", atau "Kaleng". Gunakan "PCS" jika tidak ada yang spesifik.
-        - "PRICE": Harga ritel yang disarankan dalam Rupiah (hanya angka). Jika tidak ada, berikan nilai 0.
+        - "VARIANT_NAME": Satuan unit ("PCS", "Botol", "Pack"). Gunakan "PCS" jika tidak jelas.
+        - "PRICE": Harga dalam Rupiah (hanya angka). Beri nilai 0 jika tidak ada.
 
         Sangat penting: Hanya kembalikan satu objek JSON yang valid berdasarkan konteks yang diberikan.
         """
@@ -82,11 +89,10 @@ def enrich_with_ai():
         return jsonify(product_data)
 
     except Exception as e:
-        # --- Penanganan Error Spesifik untuk KMS ---
-        if "cloudkms.cryptoKeyVersions.useToEncrypt" in str(e):
-             return jsonify({'error': f'Kesalahan Izin Google Cloud: {str(e)}. Silakan periksa konfigurasi CMEK dan izin IAM untuk service account Anda.'}), 500
+        error_message = f'Gagal memproses permintaan AI. Detail: {str(e)}'
         print(f"Error in enrich_with_ai endpoint: {e}")
-        return jsonify({'error': f'Gagal memproses permintaan AI. Detail: {str(e)}'}), 500
+        # Penanganan error spesifik bisa ditambahkan di sini jika perlu
+        return jsonify({'error': error_message}), 500
 
 
 @app.route('/api/search')

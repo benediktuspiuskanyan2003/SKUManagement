@@ -1,417 +1,507 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Pencari Produk dengan Scan</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manajemen SKU Produk</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
+    <!-- Library untuk Scan Barcode -->
     <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
     <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; margin: 0; padding: 1rem; background-color: #f4f4f9; color: #333; }
-        .container { max-width: 700px; margin: 0 auto; background: #fff; padding: 1.5rem; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
-        h1, h2 { color: #444; text-align: center; }
-        .search-container { display: flex; gap: 0.5rem; margin-bottom: 1rem; }
-        .search-box { flex-grow: 1; padding: 0.75rem; font-size: 1rem; border-radius: 6px; border: 1px solid #ddd; box-sizing: border-box; text-transform: uppercase;}
-        #scanner-container { display: none; margin-top: 1rem; padding: 1rem; border: 1px dashed #ccc; border-radius: 8px; }
-        #reader { width: 100%; border-radius: 8px; }
-        #results { margin-top: 1.5rem; }
-        .product-item { display: flex; justify-content: space-between; align-items: center; padding: 1rem; border-bottom: 1px solid #eee; gap: 1rem; }
-        .product-details { display: flex; flex-direction: column; flex-grow: 1; }
-        .product-item:last-child { border-bottom: none; }
-        .product-item-actions { display: flex; gap: 0.5rem; }
-        .product-category { font-size: 0.8rem; color: #667; background-color: #f0f0f0; padding: 2px 6px; border-radius: 4px; margin-bottom: 0.5rem; align-self: flex-start; }
-        .product-sku { font-weight: bold; color: #0056b3; font-size: 1.1rem; }
-        .product-name { font-size: 1rem; color: #555; }
-        .product-price { font-size: 1.1rem; font-weight: 600; color: #28a745; margin-top: 0.25rem; }
-        .product-brand { font-size: 0.9rem; color: #888; margin-top: 0.5rem; }
-        #add-product-section { display: none; margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid #eee; }
-        .form-group { margin-bottom: 1rem; }
-        .form-group label { display: block; margin-bottom: 0.25rem; font-weight: 500; }
-        .form-group input { width: 100%; padding: 0.5rem; font-size: 1rem; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; text-transform: uppercase; }
-        #form-message { margin-top: 1rem; text-align: center; }
-        #cart-section { display: none; margin-top: 2rem; padding-top: 1rem; border-top: 2px solid #007bff; }
-        #cart-items .product-item { background-color: #f9f9f9; border-radius: 5px; margin-bottom: 0.5rem; }
-        .form-buttons { display: flex; justify-content: center; gap: 0.5rem; margin-top: 1rem; }
-        .btn { padding: 0.6rem 1.2rem; border: none; border-radius: 5px; font-size: 0.9rem; cursor: pointer; background-color: #007bff; color: white; transition: background-color 0.2s; }
-        .btn:hover { background-color: #0056b3; }
-        .btn-secondary { background-color: #6c757d; }
-        .btn-secondary:hover { background-color: #5a6268; }
-        .btn-danger { background-color: #dc3545; }
-        .btn-danger:hover { background-color: #c82333; }
-        .btn-small { font-size: 0.8rem; padding: 0.4rem 0.8rem; }
-        .btn-add { background-color: #28a745; }
-        .btn-add:hover { background-color: #218838; }
-        .btn-edit { background-color: #ffc107; color: #212529; }
-        .btn-edit:hover { background-color: #e0a800; }
-        .message-success { color: green; }
-        .message-error { color: red; }
-        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: none; justify-content: center; align-items: center; z-index: 1000; }
-        .modal-content { background: white; padding: 2rem; border-radius: 8px; text-align: center; box-shadow: 0 5px 15px rgba(0,0,0,0.3); max-width: 90%; width: 400px; }
-        .modal-message { margin-bottom: 1.5rem; font-size: 1.1rem; color: #333; }
-        .modal-buttons { display: flex; justify-content: center; gap: 1rem; }
+        :root {
+            --primary-color: #007BFF;
+            --primary-hover-color: #0056b3;
+            --secondary-color: #6c757d;
+            --secondary-hover-color: #5a6268;
+            --danger-color: #dc3545;
+            --danger-hover-color: #c82333;
+            --success-color: #28a745; /* Warna baru untuk tombol Scan */
+            --success-hover-color: #218838;
+            --background-color: #f8f9fa;
+            --surface-color: #ffffff;
+            --text-color: #333;
+            --border-color: #dee2e6;
+            --border-radius: 6px;
+            --shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--background-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 800px;
+            background-color: var(--surface-color);
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow);
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        h1, h2 {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        #search-section, #results-section, #cart-section {
+            margin-bottom: 30px;
+        }
+
+        .search-box {
+            display: flex;
+            flex-wrap: wrap; /* Agar responsif di layar kecil */
+            gap: 10px;
+        }
+
+        #search-input {
+            flex-grow: 1;
+            padding: 10px 15px;
+            border: 1px solid var(--border-color);
+            border-radius: var(--border-radius);
+            font-size: 16px;
+            min-width: 200px; /* Lebar minimum untuk input */
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: var(--border-radius);
+            font-size: 16px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            background-color: var(--primary-color);
+            color: white;
+        }
+
+        .btn:hover {
+            background-color: var(--primary-hover-color);
+        }
+
+        .btn-secondary {
+            background-color: var(--secondary-color);
+        }
+
+        .btn-secondary:hover {
+            background-color: var(--secondary-hover-color);
+        }
+        
+        .btn-danger {
+            background-color: var(--danger-color);
+        }
+        .btn-danger:hover {
+            background-color: var(--c82333);
+        }
+
+        .btn-success {
+            background-color: var(--success-color);
+        }
+        .btn-success:hover {
+            background-color: var(--success-hover-color);
+        }
+
+        #results-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        #results-table th, #results-table td {
+            border: 1px solid var(--border-color);
+            padding: 12px;
+            text-align: left;
+        }
+
+        #results-table th {
+            background-color: #f2f2f2;
+        }
+
+        .message-info, .message-error {
+            padding: 15px;
+            border-radius: var(--border-radius);
+            margin: 10px 0;
+            text-align: center;
+        }
+        .message-info {
+            background-color: #e2f3ff;
+            border: 1px solid #b6e0ff;
+            color: #004085;
+        }
+        .message-error {
+            background-color: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+
+        /* Form Styling */
+        #product-form {
+            border: 1px solid var(--border-color);
+            border-radius: var(--border-radius);
+            padding: 20px;
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .form-group label {
+            margin-bottom: 5px;
+            font-weight: 500;
+        }
+
+        .form-group input {
+            padding: 10px;
+            border: 1px solid var(--border-color);
+            border-radius: var(--border-radius);
+            font-size: 14px;
+            box-sizing: border-box;
+            width: 100%;
+            height: 40px;
+        }
+        
+        .form-buttons {
+            margin-top: 20px;
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+        }
+
+        .input-wrapper {
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+
+        .input-wrapper input {
+            padding-right: 35px; 
+        }
+        
+        .clear-btn {
+            position: absolute;
+            right: 1px;
+            top: 1px;
+            bottom: 1px;
+            border: none;
+            background-color: transparent;
+            width: 38px;
+            height: 38px;
+            cursor: pointer;
+            font-size: 22px;
+            color: #999;
+            line-height: 38px;
+            text-align: center;
+        }
+
+        .clear-btn:hover {
+            color: #333;
+        }
+
+        /* --- STYLE BARU UNTUK SCANNER --- */
+        #scanner-container {
+            padding: 20px;
+            border: 1px solid var(--border-color);
+            border-radius: var(--border-radius);
+            background: #fff;
+        }
+        #qr-reader {
+            width: 100%;
+            max-width: 500px;
+            margin: 0 auto;
+        }
+        #scanner-container .scanner-buttons {
+            text-align: center;
+            margin-top: 15px;
+        }
+        /* ------------------------------- */
+
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>Pencari Produk</h1>
-        <div class="search-container">
-            <input type="text" id="search-input" class="search-box" placeholder="Ketik atau Scan SKU...">
-            <button id="scan-btn" class="btn">Scan</button>
-        </div>
-
-        <div id="scanner-container">
-            <div id="reader"></div>
-            <div class="form-buttons">
-                 <button id="stop-scan-btn" class="btn btn-secondary">Stop</button>
+        <h1>Manajemen SKU</h1>
+        
+        <!-- Kontainer untuk scanner, awalnya disembunyikan -->
+        <div id="scanner-container" style="display:none;">
+            <div id="qr-reader"></div>
+            <div class="scanner-buttons">
+                <button class="btn btn-danger" onclick="stopScanner()">Tutup Scanner</button>
             </div>
         </div>
 
-        <div id="results"></div>
-
-        <div id="add-product-section">
-            <h2 id="form-title">Tambahkan Produk Baru</h2>
-            <form id="add-product-form">
-                <div class="form-group"><label for="sku">SKU</label><input type="text" id="sku" name="SKU" required></div>
-                <div class="form-group"><label for="items-name">Nama Produk</label><input type="text" id="items-name" name="ITEMS_NAME" required></div>
-                <div class="form-group"><label for="category">Kategori</label><input type="text" id="category" name="CATEGORY"></div>
-                <div class="form-group"><label for="brand-name">Merek</label><input type="text" id="brand-name" name="BRAND_NAME"></div>
-                <div class="form-group"><label for="variant-name">Varian</label><input type="text" id="variant-name" name="VARIANT_NAME"></div>
-                <div class="form-group"><label for="price">Harga</label><input type="text" id="price" name="PRICE"></div>
-                <div class="form-buttons">
-                    <button type="button" class="btn btn-secondary" onclick="hideAddProductForm()">Batal</button>
-                    <button type="submit" id="form-submit-btn" class="btn">Simpan</button>
+        <!-- Konten utama aplikasi -->
+        <div id="main-content">
+            <div id="search-section">
+                <div class="search-box">
+                    <input type="text" id="search-input" placeholder="Cari SKU / Nama atau Scan Barcode...">
+                    <!-- TOMBOL BARU DITAMBAHKAN -->
+                    <button class="btn btn-success" onclick="startScanner()">Scan</button>
+                    <button class="btn" onclick="searchProduct()">Cari</button>
+                    <button class="btn btn-secondary" onclick="showAddProductForm()">Tambah Manual</button>
                 </div>
-            </form>
-            <div id="form-message"></div>
-        </div>
-
-        <div id="cart-section">
-            <h2>Daftar Produk Terpilih</h2>
-            <div id="cart-items"></div>
-            <div class="form-buttons">
-                <button class="btn btn-secondary" onclick="clearCart()">Bersihkan Daftar</button>
-                <button class="btn" onclick="exportToCSV()">Ekspor ke Excel (CSV)</button>
             </div>
-        </div>
-    </div>
-
-    <div id="confirmation-modal" class="modal-overlay">
-        <div class="modal-content">
-            <p id="modal-message" class="modal-message">Apakah Anda yakin?</p>
-            <div class="modal-buttons">
-                <button id="modal-btn-no" class="btn btn-secondary">Tidak</button>
-                <button id="modal-btn-yes" class="btn btn-danger">Ya, Hapus</button>
+            
+            <div id="results-section">
+                <!-- Hasil pencarian atau form tambah/edit akan muncul di sini -->
             </div>
         </div>
     </div>
 
     <script>
         const searchInput = document.getElementById('search-input');
-        const resultsDiv = document.getElementById('results');
-        const scanBtn = document.getElementById('scan-btn');
-        const stopScanBtn = document.getElementById('stop-scan-btn');
+        const resultsDiv = document.getElementById('results-section');
+        const mainContent = document.getElementById('main-content');
         const scannerContainer = document.getElementById('scanner-container');
-        const addProductSection = document.getElementById('add-product-section');
-        const addProductForm = document.getElementById('add-product-form');
-        const formTitle = document.getElementById('form-title');
-        const formSubmitBtn = document.getElementById('form-submit-btn');
-        const formMessage = document.getElementById('form-message');
-        const cartSection = document.getElementById('cart-section');
-        const cartItemsDiv = document.getElementById('cart-items');
-        const modal = document.getElementById('confirmation-modal');
-        const modalMessage = document.getElementById('modal-message');
-        const modalBtnYes = document.getElementById('modal-btn-yes');
-        const modalBtnNo = document.getElementById('modal-btn-no');
+        
+        let editingSku = null;
+        let html5QrCode = null; // Variabel global untuk instance scanner
 
-        let cart = [];
-        let debounceTimeout;
-        let onConfirmCallback = null;
-        let isEditMode = false;
-        const html5QrCode = new Html5Qrcode("reader");
-
-        function formatCurrency(value) {
-            if (value === null || value === undefined || isNaN(value)) {
-                return '';
-            }
-            return new Intl.NumberFormat('id-ID', {
-                style: 'currency', 
-                currency: 'IDR', 
-                minimumFractionDigits: 0,
-                maximumFractionDigits: 0 
-            }).format(value);
-        }
-
-        const onScanSuccess = (decodedText, decodedResult) => {
-            const query = decodedText.trim().toUpperCase();
-            searchInput.value = query;
-            stopScanner();
-            if (query) { fetchProducts(query); }
-        };
-        const startScanner = () => {
-            resultsDiv.style.display = 'none';
-            addProductSection.style.display = 'none';
+        // --- LOGIKA BARU UNTUK SCANNER KAMERA ---
+        function startScanner() {
+            mainContent.style.display = 'none';
             scannerContainer.style.display = 'block';
-            const config = { fps: 10, qrbox: { width: 250, height: 150 } };
-            html5QrCode.start({ facingMode: "environment" }, config, onScanSuccess, () => {});
-        };
-        const stopScanner = () => {
-            html5QrCode.stop().then(() => {
-                scannerContainer.style.display = 'none';
-                resultsDiv.style.display = 'block';
-            }).catch(err => {
-                scannerContainer.style.display = 'none';
-                resultsDiv.style.display = 'block';
-            });
-        };
+            resultsDiv.innerHTML = ''; // Bersihkan hasil sebelumnya
 
-        async function fetchProducts(query) {
-            try {
-                const response = await fetch(`/api/search?q=${encodeURIComponent(query)}`);
-                if (!response.ok) throw new Error((await response.json()).error || 'Gagal mengambil data');
-                const products = await response.json();
-                displayProducts(products);
-            } catch (error) {
-                resultsDiv.innerHTML = `<p class="message-error">Error: ${error.message}</p>`;
+            if (!html5QrCode) {
+                html5QrCode = new Html5Qrcode("qr-reader");
+            }
+
+            const qrCodeSuccessCallback = (decodedText, decodedResult) => {
+                stopScanner();
+                searchInput.value = decodedText; // Masukkan hasil scan ke input
+                searchProduct(); // Jalankan pencarian AI/biasa
+            };
+
+            const config = { fps: 10, qrbox: { width: 250, height: 250 } };
+            
+            // Coba mulai scanner
+            html5QrCode.start({ facingMode: "environment" }, config, qrCodeSuccessCallback)
+                .catch(err => {
+                    console.error("Gagal memulai scanner", err);
+                    alert("Gagal memulai scanner. Pastikan Anda memberikan izin kamera.");
+                    stopScanner();
+                });
+        }
+
+        function stopScanner() {
+            if (html5QrCode && html5QrCode.isScanning) {
+                html5QrCode.stop().catch(err => {
+                    console.error("Gagal menghentikan scanner dengan benar.", err);
+                });
+            }
+            mainContent.style.display = 'block';
+            scannerContainer.style.display = 'none';
+        }
+        // ----------------------------------------
+
+        function clearInput(inputId) {
+            const inputElement = document.getElementById(inputId);
+            if(inputElement) {
+                inputElement.value = '';
+                inputElement.focus();
             }
         }
 
-        function displayProducts(products) {
-            resultsDiv.style.display = 'block';
-            if (products.length === 0) {
-                resultsDiv.innerHTML = `
-                    <p style="text-align:center;">Produk tidak ditemukan di database.</p>
-                    <div class="form-buttons">
-                        <button class="btn btn-add" onclick="enrichWithAI()">
-                            🤖 Isi Otomatis dengan AI
-                        </button>
-                        <button class="btn btn-secondary" onclick="showAddProductForm()">
-                            Isi Manual
-                        </button>
+        function showSearch() {
+            editingSku = null;
+            searchInput.value = '';
+            resultsDiv.innerHTML = '';
+            mainContent.style.display = 'block';
+            scannerContainer.style.display = 'none';
+        }
+
+        async function searchProduct() {
+            const query = searchInput.value.trim();
+            if (!query) return;
+
+            if (/^\d{8,}$/.test(query)) { // Sedikit dilonggarkan untuk berbagai jenis barcode
+                resultsDiv.innerHTML = `<p style="text-align:center;">🤖 Mencari data dengan AI untuk barcode ${query}, mohon tunggu...</p>`;
+                
+                try {
+                    const response = await fetch(`/api/enrich_with_ai?sku=${encodeURIComponent(query)}`);
+                    const result = await response.json();
+    
+                    if (!response.ok) {
+                        throw new Error(result.error || 'Gagal mengambil data dari AI.');
+                    }
+    
+                    showAddProductForm(result);
+    
+                } catch (error) {
+                    resultsDiv.innerHTML = `<p class="message-error" style="text-align:center;">Error: ${error.message}</p>
+                    <div class="form-buttons" style="justify-content: center;">
+                        <button class="btn btn-secondary" onclick="showAddProductForm({ SKU: query })">Coba Isi Manual Saja</button>
                     </div>`;
+                }
+            } else {
+                 try {
+                    const response = await fetch(`/api/search?q=${encodeURIComponent(query)}`);
+                    const products = await response.json();
+                    displayResults(products);
+                } catch (error) {
+                    resultsDiv.innerHTML = `<p class="message-error">Gagal mengambil data. Coba lagi nanti.</p>`;
+                }
+            }
+        }
+
+        function displayResults(products) {
+            if (products.length === 0) {
+                resultsDiv.innerHTML = `<p class="message-info">Tidak ada produk yang cocok ditemukan.</p>`;
                 return;
             }
-            resultsDiv.innerHTML = products.map(p => {
-                const productJSON = JSON.stringify(p).replace(/'/g, "\'");
-                const formattedPrice = formatCurrency(p.PRICE);
-                return `
-                <div class="product-item">
-                    <div class="product-details">
-                        <div class="product-category">${p.CATEGORY || ''}</div>
-                        <div class="product-sku">${p.SKU}</div>
-                        <div class="product-name">${p.ITEMS_NAME}</div>
-                        <div class="product-price">${formattedPrice}</div>
-                        <div class="product-brand">${p.BRAND_NAME || ''} - ${p.VARIANT_NAME || ''}</div>
-                    </div>
-                    <div class="product-item-actions">
-                        <button class="btn btn-small btn-edit" onclick='showEditProductForm(${productJSON})'>Edit</button>
-                        <button class="btn btn-small btn-add" onclick='addToCart(${productJSON})'>+ Tambah</button>
-                    </div>
-                </div>`;
-            }).join('');
+
+            let table = `<table id="results-table">
+                <thead>
+                    <tr>
+                        <th>SKU</th>
+                        <th>Nama Produk</th>
+                        <th>Kategori</th>
+                        <th>Merek</th>
+                        <th>Harga</th>
+                        <th>Aksi</th>
+                    </tr>
+                </thead>
+                <tbody>`;
+            
+            products.forEach(p => {
+                table += `
+                    <tr>
+                        <td>${p.SKU}</td>
+                        <td>${p.ITEMS_NAME}</td>
+                        <td>${p.CATEGORY}</td>
+                        <td>${p.BRAND_NAME}</td>
+                        <td>${p.PRICE ? new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(p.PRICE) : ''}</td>
+                        <td><button class="btn btn-secondary" onclick='editProduct(${JSON.stringify(p)})'>Edit</button></td>
+                    </tr>`;
+            });
+
+            table += `</tbody></table>`;
+            resultsDiv.innerHTML = table;
+        }
+
+        function editProduct(product) {
+            editingSku = product.SKU;
+            showAddProductForm(product);
         }
         
-        async function enrichWithAI() {
-            const sku = searchInput.value.trim().toUpperCase();
-            if (!sku) {
-                resultsDiv.innerHTML = `<p class="message-error">SKU tidak boleh kosong untuk pengisian AI.</p>`;
-                return;
-            }
+        function showAddProductForm(product = {}) {
+            const isUpdate = product && product.SKU && editingSku;
+            const skuValue = product?.SKU || searchInput.value.match(/^\d+$/) ? searchInput.value : '';
 
-            resultsDiv.innerHTML = `<p style="text-align:center;">🤖 Mencari data dengan AI, mohon tunggu...</p>`;
-
-            try {
-                const response = await fetch(`/api/enrich_with_ai?sku=${encodeURIComponent(sku)}`);
-                const result = await response.json();
-
-                if (!response.ok) {
-                    throw new Error(result.error || 'Gagal mengambil data dari AI.');
-                }
-
-                // AI berhasil, tampilkan form dengan data yang sudah diisi
-                showAddProductForm(result);
-
-            } catch (error) {
-                resultsDiv.innerHTML = `<p class="message-error" style="text-align:center;">Error: ${error.message}</p>
-                <div class="form-buttons">
-                    <button class="btn btn-secondary" onclick="showAddProductForm()">Coba Isi Manual</button>
-                </div>`;
-            }
-        }
-
-        function showAddProductForm(productData = null) {
-            hideAddProductForm(); 
-            isEditMode = false;
-            formTitle.textContent = 'Tambahkan Produk Baru';
-            formSubmitBtn.textContent = 'Simpan';
-            
-            if (productData) {
-                // Isi form dengan data dari AI
-                addProductForm.elements['SKU'].value = searchInput.value.trim().toUpperCase();
-                addProductForm.elements['ITEMS_NAME'].value = productData.ITEMS_NAME || '';
-                addProductForm.elements['CATEGORY'].value = productData.CATEGORY || '';
-                addProductForm.elements['BRAND_NAME'].value = productData.BRAND_NAME || '';
-                addProductForm.elements['VARIANT_NAME'].value = productData.VARIANT_NAME || '';
-                addProductForm.elements['PRICE'].value = productData.PRICE > 0 ? productData.PRICE : '';
-            } else {
-                // Mode manual, hanya isi SKU
-                addProductForm.elements['SKU'].value = searchInput.value.trim().toUpperCase();
-            }
-
-            addProductForm.elements['SKU'].readOnly = false;
-            resultsDiv.style.display = 'none';
-            addProductSection.style.display = 'block';
-        }
-
-        function showEditProductForm(product) {
-            hideAddProductForm();
-            isEditMode = true;
-            formTitle.textContent = 'Edit Produk';
-            formSubmitBtn.textContent = 'Simpan Perubahan';
-            
-            for (const key in product) {
-                if (addProductForm.elements[key]) {
-                    addProductForm.elements[key].value = product[key] || '';
-                }
-            }
-            
-            addProductForm.elements['SKU'].readOnly = true;
-            resultsDiv.style.display = 'none';
-            addProductSection.style.display = 'block';
-        }
-
-        function hideAddProductForm() {
-            isEditMode = false;
-            addProductSection.style.display = 'none';
-            addProductForm.reset();
-            formMessage.innerHTML = '';
-            addProductForm.elements['SKU'].readOnly = false;
-            formTitle.textContent = 'Tambahkan Produk Baru';
-            formSubmitBtn.textContent = 'Simpan';
-        }
-
-        function showConfirmationModal(message, callback) {
-            modalMessage.textContent = message;
-            onConfirmCallback = callback;
-            modal.style.display = 'flex';
-        }
-
-        function saveCart() { localStorage.setItem('productCart', JSON.stringify(cart)); }
-        function loadCart() {
-            const savedCart = localStorage.getItem('productCart');
-            if (savedCart) { cart = JSON.parse(savedCart); }
-        }
-        function addToCart(product) {
-            if (!cart.some(item => item.SKU === product.SKU)) {
-                cart.push(product);
-                saveCart();
-                displayCart();
-            }
-        }
-        function removeFromCart(sku) {
-            const message = "Apakah Anda yakin ingin menghapus produk ini dari daftar?";
-            showConfirmationModal(message, () => {
-                cart = cart.filter(item => item.SKU !== sku);
-                saveCart();
-                displayCart();
-            });
-        }
-        function clearCart(){
-            if (cart.length === 0) return;
-            const message = "Apakah Anda yakin ingin menghapus semua produk dari daftar?";
-            showConfirmationModal(message, () => {
-                cart = [];
-                saveCart();
-                displayCart();
-            });
-        }
-        function displayCart() {
-            cartSection.style.display = cart.length > 0 ? 'block' : 'none';
-            cartItemsDiv.innerHTML = cart.map((p, index) => `
-                <div class="product-item">
-                    <div class="product-details">
-                        <div class="product-sku">${p.SKU}</div>
-                        <div class="product-name">${p.ITEMS_NAME}</div>
+            function createInput(id, label, value = '', disabled = false) {
+                 const finalValue = (value === null || value === undefined) ? '' : value;
+                 if (disabled) {
+                     return `
+                        <div class="form-group">
+                            <label for="${id}">${label}</label>
+                            <input type="text" id="${id}" value="${finalValue}" disabled>
+                        </div>
+                     `;
+                 }
+                 return `
+                    <div class="form-group">
+                        <label for="${id}">${label}</label>
+                        <div class="input-wrapper">
+                            <input type="${id === 'PRICE' ? 'number' : 'text'}" id="${id}" value="${finalValue}">
+                            <button class="clear-btn" onclick="clearInput('${id}')" type="button">&times;</button>
+                        </div>
                     </div>
-                    <button class="btn btn-danger" onclick="removeFromCart('${p.SKU}')">Hapus</button>
-                </div>`).join('');
-        }
-        function exportToCSV() {
-            if (cart.length === 0) { alert("Daftar produk masih kosong."); return; }
-            const headers = ['CATEGORY', 'SKU', 'ITEMS_NAME', 'BRAND_NAME', 'VARIANT_NAME', 'PRICE'];
-            let csvContent = headers.join(',') + '';
-            cart.forEach(item => {
-                const row = headers.map(header => `"${item[header] || ''}"`);
-                csvContent += row.join(',') + '';
-            });
-            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-            const link = document.createElement('a');
-            link.setAttribute('href', URL.createObjectURL(blob));
-            link.setAttribute('download', 'daftar_produk.csv');
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
+                 `;
+            }
+
+            resultsDiv.innerHTML = `
+                <div id="product-form">
+                    <h3>${isUpdate ? 'Edit Produk' : 'Tambah Produk Baru'}</h3>
+                    <div class="form-grid">
+                        ${createInput('SKU', 'SKU / Barcode', product?.SKU || skuValue, isUpdate)}
+                        ${createInput('ITEMS_NAME', 'Nama Produk', product?.ITEMS_NAME)}
+                        ${createInput('CATEGORY', 'Kategori', product?.CATEGORY)}
+                        ${createInput('BRAND_NAME', 'Merek', product?.BRAND_NAME)}
+                        ${createInput('VARIANT_NAME', 'Varian', product?.VARIANT_NAME)}
+                        ${createInput('PRICE', 'Harga', product?.PRICE)}
+                    </div>
+                    <div class="form-buttons">
+                        <button class="btn" onclick="${isUpdate ? `submitUpdate('${product.SKU}')` : 'submitProduct()'}">${isUpdate ? 'Simpan Perubahan' : 'Simpan Produk'}</button>
+                        <button class="btn btn-secondary" onclick="showSearch()">Batal</button>
+                    </div>
+                </div>
+            `;
+            document.getElementById('search-input').value = '';
         }
 
-        scanBtn.addEventListener('click', startScanner);
-        stopScanBtn.addEventListener('click', stopScanner);
-        modalBtnYes.addEventListener('click', () => {
-            if (onConfirmCallback) { onConfirmCallback(); }
-            modal.style.display = 'none';
-        });
-        modalBtnNo.addEventListener('click', () => {
-            onConfirmCallback = null;
-            modal.style.display = 'none';
-        });
-        searchInput.addEventListener('input', () => {
-            clearTimeout(debounceTimeout);
-            hideAddProductForm();
-            debounceTimeout = setTimeout(() => {
-                const query = searchInput.value.trim().toUpperCase();
-                if (query.length > 1) { fetchProducts(query); } 
-                else { resultsDiv.innerHTML = ''; }
-            }, 300);
-        });
-
-        addProductForm.addEventListener('submit', async (event) => {
-            event.preventDefault();
-            const formData = new FormData(addProductForm);
-            const productData = Object.fromEntries(formData.entries());
-            formMessage.textContent = 'Menyimpan...';
-            formMessage.className = '';
+        async function submitProduct() {
+            const productData = {
+                SKU: document.getElementById('SKU').value,
+                ITEMS_NAME: document.getElementById('ITEMS_NAME').value,
+                CATEGORY: document.getElementById('CATEGORY').value,
+                BRAND_NAME: document.getElementById('BRAND_NAME').value,
+                VARIANT_NAME: document.getElementById('VARIANT_NAME').value,
+                PRICE: document.getElementById('PRICE').value,
+            };
 
             try {
-                let response, successMessage, updatedProduct;
-                if (isEditMode) {
-                    response = await fetch('/api/update_product', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(productData) });
-                    successMessage = 'Produk berhasil diperbarui!';
-                } else {
-                    response = await fetch('/api/add_product', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(productData) });
-                    successMessage = 'Produk berhasil ditambahkan!';
-                }
-                
+                const response = await fetch('/api/add_product', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(productData)
+                });
                 const result = await response.json();
                 if (!response.ok) throw new Error(result.error || 'Gagal menyimpan data.');
 
-                formMessage.textContent = successMessage;
-                formMessage.className = 'message-success';
-                
-                updatedProduct = result.data[0];
-
-                setTimeout(() => {
-                    hideAddProductForm();
-                    searchInput.value = updatedProduct.SKU;
-                    fetchProducts(updatedProduct.SKU);
-                }, 1500);
-
+                alert('Produk berhasil ditambahkan!');
+                showSearch();
             } catch (error) {
-                formMessage.textContent = `Error: ${error.message}`;
-                formMessage.className = 'message-error';
+                alert(`Error: ${error.message}`);
+            }
+        }
+
+        async function submitUpdate(sku) {
+             const productData = {
+                SKU: sku,
+                ITEMS_NAME: document.getElementById('ITEMS_NAME').value,
+                CATEGORY: document.getElementById('CATEGORY').value,
+                BRAND_NAME: document.getElementById('BRAND_NAME').value,
+                VARIANT_NAME: document.getElementById('VARIANT_NAME').value,
+                PRICE: document.getElementById('PRICE').value,
+            };
+
+            try {
+                const response = await fetch('/api/update_product', {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(productData)
+                });
+                const result = await response.json();
+                if (!response.ok) throw new Error(result.error || 'Gagal memperbarui data.');
+
+                alert('Produk berhasil diperbarui!');
+                showSearch();
+            } catch (error) {
+                alert(`Error: ${error.message}`);
+            }
+        }
+
+        searchInput.addEventListener('keyup', function(event) {
+            if (event.key === 'Enter') {
+                searchProduct();
             }
         });
 
-        document.addEventListener('DOMContentLoaded', () => {
-            loadCart();
-            displayCart();
-        });
+        // Initial state
+        showSearch();
     </script>
 </body>
 </html>

@@ -3,4 +3,3 @@ supabase
 python-dotenv
 gunicorn
 google-generativeai
-duckduckgo-search
