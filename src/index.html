@@ -130,7 +130,7 @@
 
         function formatCurrency(value) {
             if (value === null || value === undefined || isNaN(value)) {
-                return ''; // Return empty string if price is not available
+                return '';
             }
             return new Intl.NumberFormat('id-ID', {
                 style: 'currency', 
@@ -177,7 +177,16 @@
         function displayProducts(products) {
             resultsDiv.style.display = 'block';
             if (products.length === 0) {
-                resultsDiv.innerHTML = `<p style="text-align:center;">Produk tidak ditemukan.</p><div class="form-buttons"><button class="btn" onclick="showAddProductForm()">Tambahkan Produk Baru</button></div>`;
+                resultsDiv.innerHTML = `
+                    <p style="text-align:center;">Produk tidak ditemukan di database.</p>
+                    <div class="form-buttons">
+                        <button class="btn btn-add" onclick="enrichWithAI()">
+                            🤖 Isi Otomatis dengan AI
+                        </button>
+                        <button class="btn btn-secondary" onclick="showAddProductForm()">
+                            Isi Manual
+                        </button>
+                    </div>`;
                 return;
             }
             resultsDiv.innerHTML = products.map(p => {
@@ -200,12 +209,53 @@
             }).join('');
         }
         
-        function showAddProductForm() {
-            hideAddProductForm();
+        async function enrichWithAI() {
+            const sku = searchInput.value.trim().toUpperCase();
+            if (!sku) {
+                resultsDiv.innerHTML = `<p class="message-error">SKU tidak boleh kosong untuk pengisian AI.</p>`;
+                return;
+            }
+
+            resultsDiv.innerHTML = `<p style="text-align:center;">🤖 Mencari data dengan AI, mohon tunggu...</p>`;
+
+            try {
+                const response = await fetch(`/api/enrich_with_ai?sku=${encodeURIComponent(sku)}`);
+                const result = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(result.error || 'Gagal mengambil data dari AI.');
+                }
+
+                // AI berhasil, tampilkan form dengan data yang sudah diisi
+                showAddProductForm(result);
+
+            } catch (error) {
+                resultsDiv.innerHTML = `<p class="message-error" style="text-align:center;">Error: ${error.message}</p>
+                <div class="form-buttons">
+                    <button class="btn btn-secondary" onclick="showAddProductForm()">Coba Isi Manual</button>
+                </div>`;
+            }
+        }
+
+        function showAddProductForm(productData = null) {
+            hideAddProductForm(); 
             isEditMode = false;
             formTitle.textContent = 'Tambahkan Produk Baru';
             formSubmitBtn.textContent = 'Simpan';
-            addProductForm.elements['SKU'].value = searchInput.value.trim().toUpperCase();
+            
+            if (productData) {
+                // Isi form dengan data dari AI
+                addProductForm.elements['SKU'].value = searchInput.value.trim().toUpperCase();
+                addProductForm.elements['ITEMS_NAME'].value = productData.ITEMS_NAME || '';
+                addProductForm.elements['CATEGORY'].value = productData.CATEGORY || '';
+                addProductForm.elements['BRAND_NAME'].value = productData.BRAND_NAME || '';
+                addProductForm.elements['VARIANT_NAME'].value = productData.VARIANT_NAME || '';
+                addProductForm.elements['PRICE'].value = productData.PRICE > 0 ? productData.PRICE : '';
+            } else {
+                // Mode manual, hanya isi SKU
+                addProductForm.elements['SKU'].value = searchInput.value.trim().toUpperCase();
+            }
+
             addProductForm.elements['SKU'].readOnly = false;
             resultsDiv.style.display = 'none';
             addProductSection.style.display = 'block';
@@ -287,10 +337,10 @@
         function exportToCSV() {
             if (cart.length === 0) { alert("Daftar produk masih kosong."); return; }
             const headers = ['CATEGORY', 'SKU', 'ITEMS_NAME', 'BRAND_NAME', 'VARIANT_NAME', 'PRICE'];
-            let csvContent = headers.join(',') + '\n';
+            let csvContent = headers.join(',') + '';
             cart.forEach(item => {
                 const row = headers.map(header => `"${item[header] || ''}"`);
-                csvContent += row.join(',') + '\n';
+                csvContent += row.join(',') + '';
             });
             const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
             const link = document.createElement('a');

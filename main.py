@@ -1,17 +1,93 @@
 from flask import Flask, request, jsonify, render_template
 from supabase import create_client, Client
 import os
+import google.generativeai as genai
+# --- IMPORT BARU UNTUK DUCKDUCKGO SEARCH ---
+from duckduckgo_search import DDGS
+import json
 
+# Konfigurasi Supabase
 SUPABASE_URL = os.environ.get("SUPABASE_URL")
 SUPABASE_KEY = os.environ.get("SUPABASE_KEY")
-
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
+
+# Konfigurasi Gemini AI
+GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
+if GEMINI_API_KEY:
+    genai.configure(api_key=GEMINI_API_KEY)
 
 app = Flask(__name__, static_folder='src', static_url_path='/')
 
 @app.route('/')
 def index():
     return app.send_static_file('index.html')
+
+# --- ENDPOINT AI DENGAN PENCARIAN DUCKDUCKGO ---
+@app.route('/api/enrich_with_ai')
+def enrich_with_ai():
+    sku = request.args.get('sku', '')
+    if not sku:
+        return jsonify({'error': 'SKU/Barcode diperlukan'}), 400
+
+    try:
+        if not GEMINI_API_KEY:
+            raise ValueError("Kunci API Gemini tidak ditemukan atau tidak dikonfigurasi di environment.")
+
+        # LANGKAH 1: Lakukan pencarian DuckDuckGo dengan barcode
+        search_results = []
+        with DDGS() as ddgs:
+            # Mengambil 5 hasil teratas untuk konteks
+            for r in ddgs.text(f'{sku} product information', max_results=5):
+                search_results.append(r)
+        
+        if not search_results:
+            return jsonify({'error': 'Tidak ada hasil pencarian yang ditemukan untuk SKU ini.'}), 404
+
+        # Format hasil pencarian menjadi satu string konteks
+        search_context = "\n".join([f"Title: {res.get('title', '')}\nBody: {res.get('body', '')}\nURL: {res.get('href', '')}" for res in search_results])
+
+        # LANGKAH 2: Berikan konteks ke AI untuk dianalisis
+        model = genai.GenerativeModel('gemini-pro-latest')
+
+        prompt = f"""
+        Anda adalah asisten data entry yang sangat teliti. Berdasarkan konteks hasil pencarian berikut, identifikasi informasi produk yang paling akurat untuk barcode: {sku}.
+
+        Konteks Hasil Pencarian:
+        ---
+        {search_context}
+        ---
+
+        Tugas Anda adalah menganalisis konteks di atas dan mengembalikan satu objek JSON yang ketat dengan kunci berikut. Jangan mengarang informasi. Jika informasi tidak ada di konteks, kembalikan string kosong "".
+
+        - "ITEMS_NAME": Nama produk utama, digabungkan dengan informasi berat atau volume (contoh: "Gentle Gen Deterjen Tumbuhan Mint Bomb 700 ML").
+        - "CATEGORY": Kategori umum produk (misal: "Deterjen", "Pembersih").
+        - "BRAND_NAME": Merek produk (misal: "Gentle Gen").
+        - "VARIANT_NAME": Satuan unit produk seperti "PCS", "Botol", "Pack", atau "Kaleng". Gunakan "PCS" jika tidak ada yang spesifik.
+        - "PRICE": Harga ritel yang disarankan dalam Rupiah (hanya angka). Jika tidak ada, berikan nilai 0.
+
+        Sangat penting: Hanya kembalikan satu objek JSON yang valid berdasarkan konteks yang diberikan.
+        """
+
+        response = model.generate_content(prompt)
+        
+        if not response.text:
+            raise ValueError("Respons dari AI kosong atau tidak valid.")
+
+        cleaned_response = response.text.strip().replace('```json', '').replace('```', '').strip()
+        
+        if not cleaned_response:
+            raise ValueError("Respons dari AI tidak berisi data JSON setelah dibersihkan.")
+
+        product_data = json.loads(cleaned_response)
+        return jsonify(product_data)
+
+    except Exception as e:
+        # --- Penanganan Error Spesifik untuk KMS ---
+        if "cloudkms.cryptoKeyVersions.useToEncrypt" in str(e):
+             return jsonify({'error': f'Kesalahan Izin Google Cloud: {str(e)}. Silakan periksa konfigurasi CMEK dan izin IAM untuk service account Anda.'}), 500
+        print(f"Error in enrich_with_ai endpoint: {e}")
+        return jsonify({'error': f'Gagal memproses permintaan AI. Detail: {str(e)}'}), 500
+
 
 @app.route('/api/search')
 def search():
@@ -70,18 +146,14 @@ def update_product():
     if not sku:
         return jsonify({'error': 'SKU diperlukan untuk update'}), 400
 
-    # --- LOGIKA BARU YANG LEBIH AMAN ---
     update_data = {}
 
-    # 1. Proses semua field yang berupa teks.
     for field in ['ITEMS_NAME', 'CATEGORY', 'BRAND_NAME', 'VARIANT_NAME']:
         if field in product_data and product_data[field] is not None:
             update_data[field] = str(product_data[field]).upper()
         else:
-            # Pastikan field yang kosong atau tidak ada dikirim sebagai null
             update_data[field] = None
 
-    # 2. Proses field PRICE secara terpisah dan eksplisit.
     try:
         price_value = product_data.get('PRICE')
         if price_value and str(price_value).strip():
@@ -90,13 +162,10 @@ def update_product():
             update_data['PRICE'] = None
     except (ValueError, TypeError):
         return jsonify({'error': 'Harga harus berupa angka yang valid'}), 400
-    # --- AKHIR LOGIKA BARU ---
 
     try:
-        # Gunakan `update_data` yang sudah bersih.
         supabase.table('products').update(update_data).eq('SKU', sku).execute()
 
-        # Selalu ambil data terbaru dari database sebagai sumber kebenaran.
         fetch_response = supabase.table('products').select('*').eq('SKU', sku).single().execute()
 
         if fetch_response.data:
