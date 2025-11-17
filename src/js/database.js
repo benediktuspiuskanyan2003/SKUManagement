@@ -72,10 +72,12 @@ export function updateProduct(productData) {
 /**
  * Enriches a SKU by calling the backend AI enrichment API.
  * @param {string} sku - The SKU to enrich.
+ * @param {string} provider - The AI provider to use ('gemini' or 'chatgpt').
  * @returns {Promise<object>} The enriched product data from the AI.
  */
-export function enrichWithAI(sku) {
+export function enrichWithAI(sku, provider) {
     const url = new URL(`${API_BASE_URL}/api/enrich_with_ai`);
     url.searchParams.set('sku', sku);
+    url.searchParams.set('provider', provider);
     return apiFetch(url);
 }

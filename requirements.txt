@@ -3,3 +3,6 @@ supabase
 python-dotenv
 gunicorn
 google-generativeai
+openai
+google-api-python-client
+Flask-Session

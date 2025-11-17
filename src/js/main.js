@@ -87,16 +87,22 @@ window.fetchAiData = async function() {
         return;
     }
 
+    const aiProviderSelect = document.getElementById('ai-provider-select');
+    const provider = aiProviderSelect.value;
+
     const button = document.querySelector("button[onclick='fetchAiData()']");
     const originalButtonText = button.innerHTML;
     button.innerHTML = 'Memproses...';
     button.disabled = true;
+    aiProviderSelect.disabled = true;
 
     try {
-        const aiData = await enrichWithAI(sku);
+        // Pass the selected provider to the enrichWithAI function
+        const aiData = await enrichWithAI(sku, provider);
+        
         // Populate the form with the data received from the AI
         for (const key in aiData) {
-            const input = document.getElementById(key);
+            const input = document.getElementById(key.toUpperCase()); // Ensure matching with uppercase IDs
             if (input) {
                 input.value = aiData[key];
             }
@@ -107,12 +113,14 @@ window.fetchAiData = async function() {
     } finally {
         button.innerHTML = originalButtonText;
         button.disabled = false;
+        aiProviderSelect.disabled = false;
     }
 };
 
 
 // --- Scanner Functions ---
 let html5QrcodeScanner;
+const scanSuccessSound = new Audio('/audio/beep-07a.mp3'); // Create audio object
 
 window.startScanner = function() {
     document.getElementById('main-content').style.display = 'none';
@@ -129,7 +137,8 @@ window.startScanner = function() {
         { facingMode: "environment" }, 
         config, 
         (decodedText, decodedResult) => {
-            // On successful scan, stop the scanner, pre-fill search bar, and search
+            // On successful scan, play sound, stop scanner, pre-fill, and search.
+            scanSuccessSound.play(); // Play the beep sound
             document.getElementById('search-input').value = decodedText;
             window.stopScanner(); 
             window.searchProduct();

@@ -1,194 +1,198 @@
-from flask import Flask, request, jsonify, render_template
-from supabase import create_client, Client
+
 import os
-import google.generativeai as genai
-# --- IMPORT BARU UNTUK GOOGLE CUSTOM SEARCH API ---
-from googleapiclient.discovery import build
 import json
+import google.generativeai as genai
+import openai
+from functools import wraps
+from flask import Flask, request, jsonify, render_template, session, send_from_directory
+from flask_session import Session
+from supabase import create_client, Client
+from dotenv import load_dotenv
 
-# Konfigurasi Supabase
-SUPABASE_URL = os.environ.get("SUPABASE_URL")
-SUPABASE_KEY = os.environ.get("SUPABASE_KEY")
-supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
+# Load environment variables from .env file
+load_dotenv()
 
-# Konfigurasi Gemini AI
-GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
-if GEMINI_API_KEY:
-    genai.configure(api_key=GEMINI_API_KEY)
+# --- App Initialization and Configuration ---
+app = Flask(__name__, static_folder='src', template_folder='src')
 
-# --- KONFIGURASI BARU UNTUK GOOGLE SEARCH API ---
-GOOGLE_API_KEY = os.environ.get("GOOGLE_API_KEY")
-GOOGLE_CSE_ID = os.environ.get("GOOGLE_CSE_ID")
+# --- Session Configuration ---
+# Load secret key for session management
+app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY")
+if not app.config["SECRET_KEY"]:
+    raise ValueError("SECRET_KEY tidak ditemukan di file .env. Mohon buat kunci rahasia.")
 
-app = Flask(__name__, static_folder='src', static_url_path='/')
+# Configure session to use the filesystem (server-side)
+app.config["SESSION_PERMANENT"] = False
+app.config["SESSION_TYPE"] = "filesystem"
+app.config['SESSION_FILE_DIR'] = './.flask_session'
+Session(app)
 
-@app.route('/')
+
+# --- Supabase and AI Configuration ---
+# Initialize Supabase client
+url: str = os.environ.get("SUPABASE_URL")
+key: str = os.environ.get("SUPABASE_KEY")
+supabase: Client = create_client(url, key)
+
+# Initialize AI clients
+# Gemini
+genai.configure(api_key=os.environ.get("GEMINI_API_KEY"))
+# OpenAI (New v1.0.0+ syntax)
+openai_client = openai.OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
+
+# --- Decorators for Authentication ---
+def login_required(f):
+    """
+    Decorator to ensure a user is logged in before accessing a route.
+    """
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if not session.get("logged_in"):
+            return jsonify({"error": "Akses ditolak. Silakan login terlebih dahulu."}), 401
+        return f(*args, **kwargs)
+    return decorated_function
+
+# --- Authentication Routes ---
+@app.route("/api/login", methods=["POST"])
+def login():
+    """
+    Handles user login.
+    """
+    password = request.json.get("password")
+    correct_password = os.environ.get("LOGIN_PASSWORD")
+
+    if not correct_password:
+         return jsonify({"error": "LOGIN_PASSWORD tidak diatur di server."}), 500
+
+    if password == correct_password:
+        session["logged_in"] = True
+        return jsonify({"message": "Login berhasil"}), 200
+    else:
+        return jsonify({"error": "Password salah"}), 401
+
+@app.route("/api/logout")
+def logout():
+    """
+    Handles user logout.
+    """
+    session.clear()
+    return jsonify({"message": "Logout berhasil"}), 200
+
+@app.route("/api/status")
+def status():
+    """
+    Checks the current login status.
+    """
+    is_logged_in = session.get("logged_in", False)
+    return jsonify({"logged_in": is_logged_in}), 200
+
+# --- Frontend Routes ---
+@app.route("/")
 def index():
-    return app.send_static_file('index.html')
+    """
+    Serves the main application or the login page.
+    """
+    if not session.get("logged_in"):
+        return render_template("login.html")
+    return render_template("index.html")
 
-# --- ENDPOINT AI DENGAN PENCARIAN GOOGLE SEARCH API RESMI ---
-@app.route('/api/enrich_with_ai')
-def enrich_with_ai():
-    sku = request.args.get('sku', '')
-    if not sku:
-        return jsonify({'error': 'SKU/Barcode diperlukan'}), 400
+@app.route("/login")
+def login_page():
+    """
+    Explicitly serves the login page.
+    """
+    return render_template("login.html")
 
-    try:
-        if not GEMINI_API_KEY:
-            raise ValueError("Kunci API Gemini (GEMINI_API_KEY) tidak ditemukan.")
-        if not GOOGLE_API_KEY or not GOOGLE_CSE_ID:
-            raise ValueError("Kunci Google Search API (GOOGLE_API_KEY) atau CSE ID (GOOGLE_CSE_ID) tidak ditemukan.")
-
-        # LANGKAH 1: Lakukan pencarian resmi via Google Custom Search API
-        def google_search(search_term, api_key, cse_id, num=5):
-            service = build("customsearch", "v1", developerKey=api_key)
-            res = service.cse().list(q=search_term, cx=cse_id, num=num).execute()
-            return res.get('items', [])
-
-        search_results = google_search(sku, GOOGLE_API_KEY, GOOGLE_CSE_ID)
-        
-        if not search_results:
-            return jsonify({'error': 'Tidak ada hasil pencarian Google API yang ditemukan untuk SKU ini.'}), 404
-
-        # Format hasil pencarian menjadi konteks untuk AI
-        search_context = "\n".join([f"Title: {res.get('title', '')}\nSnippet: {res.get('snippet', '')}\nURL: {res.get('link', '')}" for res in search_results])
-
-        # LANGKAH 2: Berikan konteks ke AI untuk dianalisis
-        model = genai.GenerativeModel('gemini-pro-latest')
-
-        prompt = f"""
-        Anda adalah asisten data entry yang sangat teliti. Berdasarkan konteks hasil pencarian Google berikut, identifikasi informasi produk yang paling akurat untuk barcode: {sku}.
-
-        Konteks Hasil Pencarian:
-        ---
-        {search_context}
-        ---
-
-        Tugas Anda adalah menganalisis konteks di atas dan mengembalikan satu objek JSON yang ketat. Jangan mengarang informasi. Jika informasi tidak ada di konteks, kembalikan string kosong "".
-
-        - "ITEMS_NAME": Nama produk utama, lengkap dengan berat/volume (contoh: "Gentle Gen Deterjen Tumbuhan Mint Bomb 700 ML").
-        - "CATEGORY": Nama perusahaan produsen (misal: "PT Wings Surya"). Jika nama produsen tidak ditemukan secara eksplisit, gunakan nilai dari "BRAND_NAME" sebagai gantinya.
-        - "BRAND_NAME": Merek produk (misal: "Gentle Gen").
-        - "VARIANT_NAME": Satuan unit ("PCS", "Botol", "Pack"). Gunakan "PCS" jika tidak jelas.
-        - "PRICE": Harga dalam Rupiah (hanya angka). Beri nilai 0 jika tidak ada.
-
-        Sangat penting: Hanya kembalikan satu objek JSON yang valid berdasarkan konteks yang diberikan.
-        """
-
-        response = model.generate_content(prompt)
-        
-        if not response.text:
-            raise ValueError("Respons dari AI kosong atau tidak valid.")
-
-        cleaned_response = response.text.strip().replace('```json', '').replace('```', '').strip()
-        
-        if not cleaned_response:
-            raise ValueError("Respons dari AI tidak berisi data JSON setelah dibersihkan.")
-
-        product_data = json.loads(cleaned_response)
-
-        # --- PERUBAHAN: Ubah semua nilai string ke UPPERCASE sebelum mengirim ---
-        uppercased_data = {
-            key: value.upper() if isinstance(value, str) else value
-            for key, value in product_data.items()
-        }
-
-        return jsonify(uppercased_data)
-
-    except Exception as e:
-        error_message = f'Gagal memproses permintaan AI. Detail: {str(e)}'
-        print(f"Error in enrich_with_ai endpoint: {e}")
-        # Penanganan error spesifik bisa ditambahkan di sini jika perlu
-        return jsonify({'error': error_message}), 500
+# Serve static files like CSS, JS
+@app.route('/<path:path>')
+def send_static(path):
+    return send_from_directory('src', path)
 
 
-@app.route('/api/search')
+# --- Protected API Routes ---
+@app.route("/api/search")
+@login_required
 def search():
     query = request.args.get('q', '')
     if not query:
         return jsonify([])
+    
     try:
-        search_query = query.upper()
-        response = supabase.table('products').select('*').or_(f'SKU.eq.{search_query},ITEMS_NAME.ilike.%{search_query}%').execute()
+        response = supabase.table('products').select('*').or_(f'SKU.ilike.%{query}%,ITEMS_NAME.ilike.%{query}%').execute()
         return jsonify(response.data)
-    except Exception as e:
-        print(f"Error fetching data from Supabase: {e}")
-        return jsonify({"error": "Failed to fetch data"}), 500
 
-@app.route('/api/add_product', methods=['POST'])
+    except Exception as e:
+        print(f"Supabase search error: {e}")
+        return jsonify({"error": "Terjadi kesalahan saat mencari data di database."}), 500
+
+@app.route("/api/add_product", methods=['POST'])
+@login_required
 def add_product():
-    product_data = request.get_json()
+    data = request.json
+    response = supabase.table('products').insert(data).execute()
+    return jsonify({"status": "success", "data": response.data})
 
-    if not product_data or not product_data.get('SKU') or not product_data.get('ITEMS_NAME'):
-        return jsonify({'error': 'SKU dan Nama Produk diperlukan'}), 400
 
-    try:
-        price_str = product_data.get('PRICE')
-        if price_str and str(price_str).strip():
-            product_data['PRICE'] = float(price_str)
-        else:
-            product_data['PRICE'] = None
-    except (ValueError, TypeError):
-        return jsonify({'error': 'Harga harus berupa angka yang valid'}), 400
-
-    processed_data = {
-        key: value.upper() if isinstance(value, str) else value
-        for key, value in product_data.items()
-    }
-
-    try:
-        response = supabase.table('products').insert(processed_data).execute()
-        
-        if response.data:
-            return jsonify({'success': True, 'data': response.data}), 201
-        else:
-            error_message = 'Gagal menambahkan produk, SKU mungkin sudah ada'
-            if hasattr(response, 'error') and response.error:
-                error_message = response.error.message
-            return jsonify({'error': error_message}), 409
-
-    except Exception as e:
-        print(f"Error inserting data to Supabase: {e}")
-        return jsonify({'error': 'Kesalahan internal server'}), 500
-
-@app.route('/api/update_product', methods=['PUT'])
+@app.route("/api/update_product", methods=['PUT'])
+@login_required
 def update_product():
-    product_data = request.get_json()
-    sku = product_data.get('SKU')
+    data = request.json
+    sku = data.pop('SKU', None)
+    if not sku:
+        return jsonify({"error": "SKU is required"}), 400
+    
+    response = supabase.table('products').update(data).eq('SKU', sku).execute()
+    updated_data = supabase.table('products').select('*').eq('SKU', sku).execute()
+
+    return jsonify({"status": "success", "data": updated_data.data})
+
+@app.route("/api/enrich_with_ai")
+@login_required
+def enrich_with_ai():
+    sku = request.args.get('sku')
+    provider = request.args.get('provider', 'gemini') # Default to Gemini
 
     if not sku:
-        return jsonify({'error': 'SKU diperlukan untuk update'}), 400
+        return jsonify({"error": "SKU is required"}), 400
 
-    update_data = {}
+    # MODIFIED: Stricter prompt to prevent guessing.
+    prompt = f"""Anda adalah asisten data produk yang akurat. Berikan data untuk produk dengan SKU/barcode '{sku}' dalam format JSON. 
+Nama field harus huruf kecil dan snake_case: 'items_name', 'produsen', 'brand_name', dan 'variant_name'.
+Untuk field 'produsen', isi dengan nama perusahaan manufaktur legal (PT, CV, Corp, Ltd., dsb).
 
-    for field in ['ITEMS_NAME', 'CATEGORY', 'BRAND_NAME', 'VARIANT_NAME']:
-        if field in product_data and product_data[field] is not None:
-            update_data[field] = str(product_data[field]).upper()
-        else:
-            update_data[field] = None
-
-    try:
-        price_value = product_data.get('PRICE')
-        if price_value and str(price_value).strip():
-            update_data['PRICE'] = float(price_value)
-        else:
-            update_data['PRICE'] = None
-    except (ValueError, TypeError):
-        return jsonify({'error': 'Harga harus berupa angka yang valid'}), 400
+PENTING: Jika Anda tidak dapat menemukan informasi yang 100% akurat dan terverifikasi untuk sebuah field, Anda WAJIB mengembalikan string kosong "" untuk field tersebut. JANGAN MENEBAK atau mengarang informasi. 
+Pastikan outputnya hanya JSON, tanpa formatting markdown atau teks tambahan."""
 
     try:
-        supabase.table('products').update(update_data).eq('SKU', sku).execute()
+        if provider == 'chatgpt':
+            # MODIFIED: Added temperature parameter to reduce creativity.
+            completion = openai_client.chat.completions.create(
+                model="gpt-3.5-turbo",
+                messages=[
+                    {"role": "system", "content": "You are an accurate product data assistant that only outputs JSON."},
+                    {"role": "user", "content": prompt}
+                ],
+                temperature=0.2
+            )
+            response_text = completion.choices[0].message.content
+        else: # Default to Gemini
+            model = genai.GenerativeModel('gemini-pro')
+            # MODIFIED: Added generation_config with temperature.
+            generation_config = genai.types.GenerationConfig(temperature=0.2)
+            response = model.generate_content(prompt, generation_config=generation_config)
+            response_text = response.text
 
-        fetch_response = supabase.table('products').select('*').eq('SKU', sku).single().execute()
+        # Clean the response to ensure it's valid JSON
+        clean_response = response_text.strip().replace('\n', '').replace('`', '')
+        if clean_response.startswith('json'):
+            clean_response = clean_response[4:]
 
-        if fetch_response.data:
-            return jsonify({'success': True, 'data': [fetch_response.data]}), 200
-        else:
-            return jsonify({'error': 'Gagal menyimpan. SKU tidak ditemukan di database.'}), 404
+        ai_data = json.loads(clean_response)
+        return jsonify(ai_data)
 
     except Exception as e:
-        print(f"Error updating data in Supabase: {e}")
-        return jsonify({'error': 'Kesalahan internal server'}), 500
+        print(f"Error calling AI API: {e}")
+        return jsonify({"error": f"Gagal memanggil AI API: {str(e)}"}), 500
 
-if __name__ == '__main__':
-    app.run(debug=True, port=8080)
+if __name__ == "__main__":
+    app.run(debug=True, host='0.0.0.0', port=8080)
