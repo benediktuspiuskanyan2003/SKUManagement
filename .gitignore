@@ -1,14 +1,9 @@
-# Python bytecode
-__pycache__/
-*.pyc
 
-# Virtual environment
-.venv/
-venv/
+# Flask session files
+.flask_session/
 
-# File environment
+# Environment variables
 .env
 
-# IDE-specific files
-.vscode/
-.idea/
+# Python virtual environment
+.venv/
