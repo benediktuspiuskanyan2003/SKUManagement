@@ -25,6 +25,16 @@ genai.configure(api_key=os.environ.get("GEMINI_API_KEY"))
 # OpenAI (New v1.0.0+ syntax)
 openai_client = openai.OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
 
+# --- Helper Function for Uppercasing Data ---
+def uppercase_data(data):
+    """
+    Recursively converts all string values in a dictionary to uppercase.
+    """
+    for key, value in data.items():
+        if isinstance(value, str):
+            data[key] = value.upper()
+    return data
+
 # --- Frontend Routes ---
 @app.route("/")
 def index():
@@ -42,7 +52,7 @@ def send_static(path):
 # --- API Routes ---
 @app.route("/api/search")
 def search():
-    query = request.args.get('q', '')
+    query = request.args.get('q', '').upper() # Uppercase the search query
     if not query:
         return jsonify([])
 
@@ -52,6 +62,7 @@ def search():
             response = supabase.table('products').select('*').execute()
         else:
             # Otherwise, perform a search based on SKU or ITEMS_NAME
+            # The data in the DB is already uppercase, so we search with an uppercase query
             response = supabase.table('products').select('*').or_(f'SKU.ilike.%{query}%,ITEMS_NAME.ilike.%{query}%').execute()
         
         return jsonify(response.data)
@@ -62,7 +73,7 @@ def search():
 
 @app.route("/api/add_product", methods=['POST'])
 def add_product():
-    data = request.json
+    data = uppercase_data(request.json)
     # Convert empty string for PRICE to None, so it becomes NULL in the database
     if 'PRICE' in data and data['PRICE'] == '':
         data['PRICE'] = None
@@ -79,7 +90,7 @@ def add_product():
 
 @app.route("/api/update_product", methods=['PUT'])
 def update_product():
-    data = request.json
+    data = uppercase_data(request.json)
     sku = data.pop('SKU', None)
     if not sku:
         return jsonify({"error": "SKU is required"}), 400
@@ -90,9 +101,9 @@ def update_product():
 
     try:
         # First, update the product
-        supabase.table('products').update(data).eq('SKU', sku).execute()
+        supabase.table('products').update(data).eq('SKU', sku.upper()).execute()
         # Then, fetch the complete updated record to send back to the frontend
-        updated_data_response = supabase.table('products').select('*').eq('SKU', sku).execute()
+        updated_data_response = supabase.table('products').select('*').eq('SKU', sku.upper()).execute()
 
         return jsonify({"status": "success", "data": updated_data_response.data})
     except Exception as e:

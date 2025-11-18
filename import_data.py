@@ -23,7 +23,7 @@ def import_data():
     print("Memulai proses impor data...")
 
     # --- 1. Memuat Konfigurasi Lingkungan ---
-    print("1/7: Memuat variabel lingkungan...")
+    print("1/8: Memuat variabel lingkungan...")
     load_dotenv()
     url: str = os.environ.get("SUPABASE_URL")
     key: str = os.environ.get("SUPABASE_KEY")
@@ -40,7 +40,7 @@ def import_data():
         return
 
     # --- 2. Membaca dan Memvalidasi File CSV ---
-    print(f"2/7: Membaca file CSV: {CSV_FILE_PATH}...")
+    print(f"2/8: Membaca file CSV: {CSV_FILE_PATH}...")
     if not os.path.exists(CSV_FILE_PATH):
         print(f"   ERROR: File tidak ditemukan di '{CSV_FILE_PATH}'.")
         return
@@ -75,8 +75,8 @@ def import_data():
         print(f"   ERROR: Gagal membaca atau memproses file CSV: {e}")
         return
 
-    # --- 3. Membersihkan Data (Langkah Baru) ---
-    print("3/7: Membersihkan data sebelum diunggah...")
+    # --- 3. Membersihkan Data Harga ---
+    print("3/8: Membersihkan data harga sebelum diunggah...")
     cleaned_rows = 0
     for row in data_to_upload:
         # Cek kolom PRICE. Jika kosong, ubah menjadi None (NULL di database)
@@ -85,8 +85,17 @@ def import_data():
             cleaned_rows += 1
     print(f"   -> Pembersihan selesai. {cleaned_rows} baris dengan harga kosong telah disesuaikan.")
 
-    # --- 4. Memproses dan Mengunggah Data dalam Batch ---
-    print("4/7: Memulai proses unggah data ke tabel 'products'...")
+    # --- 4. Mengonversi Data ke Huruf Besar ---
+    print("4/8: Mengonversi semua data teks menjadi huruf besar...")
+    for row in data_to_upload:
+        for key, value in row.items():
+            if isinstance(value, str):
+                row[key] = value.upper()
+    print("   -> Konversi ke huruf besar selesai.")
+
+
+    # --- 5. Memproses dan Mengunggah Data dalam Batch ---
+    print("5/8: Memulai proses unggah data ke tabel 'products'...")
     total_batches = math.ceil(total_rows / BATCH_SIZE)
 
     for i in range(total_batches):
@@ -111,10 +120,10 @@ def import_data():
         except Exception as e:
             print(f"     ERROR KRITIS PADA BATCH {i+1}: Terjadi pengecualian: {e}")
 
-    # --- 5. Selesai ---
-    print("5/7: Proses unggah selesai.")
-    print("6/7: Memverifikasi...")
-    print("7/7: Selesai! Data baru telah ditambahkan, data lama yang cocok berdasarkan SKU tetap utuh.")
+    # --- 6. Selesai ---
+    print("6/8: Proses unggah selesai.")
+    print("7/8: Memverifikasi...")
+    print("8/8: Selesai! Data baru telah ditambahkan, data lama yang cocok berdasarkan SKU tetap utuh.")
 
 if __name__ == "__main__":
     import_data()

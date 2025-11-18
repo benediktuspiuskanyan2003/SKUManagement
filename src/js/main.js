@@ -8,7 +8,8 @@ import { loadCart } from './cart.js';
 // Attached to the main search button
 window.searchProduct = async function() {
     const searchInput = document.getElementById('search-input');
-    const query = searchInput.value.trim();
+    // Convert query to uppercase before sending
+    const query = searchInput.value.trim().toUpperCase();
     const resultsDiv = document.getElementById('results-section');
     
     // If query is empty, treat it as a request to get all products
@@ -37,12 +38,13 @@ window.searchProduct = async function() {
 
 // Attached to the "Simpan" button on the Add New Product form
 window.submitProduct = async function() {
+    // Convert all string values to uppercase before sending
     const productData = {
-        SKU: document.getElementById('SKU').value,
-        ITEMS_NAME: document.getElementById('ITEMS_NAME').value,
-        CATEGORY: document.getElementById('CATEGORY').value,
-        BRAND_NAME: document.getElementById('BRAND_NAME').value,
-        VARIANT_NAME: document.getElementById('VARIANT_NAME').value,
+        SKU: document.getElementById('SKU').value.toUpperCase(),
+        ITEMS_NAME: document.getElementById('ITEMS_NAME').value.toUpperCase(),
+        CATEGORY: document.getElementById('CATEGORY').value.toUpperCase(),
+        BRAND_NAME: document.getElementById('BRAND_NAME').value.toUpperCase(),
+        VARIANT_NAME: document.getElementById('VARIANT_NAME').value.toUpperCase(),
         PRICE: document.getElementById('PRICE').value
     };
 
@@ -64,12 +66,13 @@ window.submitProduct = async function() {
 
 // Attached to the "Simpan Perubahan" button on the Edit Product form
 window.submitUpdate = async function(originalSku) {
+    // Convert all string values to uppercase before sending
     const updatedData = {
-        SKU: originalSku, // Include the original SKU for the backend to identify the product
-        ITEMS_NAME: document.getElementById('ITEMS_NAME').value,
-        CATEGORY: document.getElementById('CATEGORY').value,
-        BRAND_NAME: document.getElementById('BRAND_NAME').value,
-        VARIANT_NAME: document.getElementById('VARIANT_NAME').value,
+        SKU: originalSku.toUpperCase(), // Use original SKU, but ensure it is uppercase for matching
+        ITEMS_NAME: document.getElementById('ITEMS_NAME').value.toUpperCase(),
+        CATEGORY: document.getElementById('CATEGORY').value.toUpperCase(),
+        BRAND_NAME: document.getElementById('BRAND_NAME').value.toUpperCase(),
+        VARIANT_NAME: document.getElementById('VARIANT_NAME').value.toUpperCase(),
         PRICE: document.getElementById('PRICE').value
     };
 
@@ -110,7 +113,8 @@ window.fetchAiData = async function() {
         for (const key in aiData) {
             const input = document.getElementById(key.toUpperCase()); // Ensure matching with uppercase IDs
             if (input) {
-                input.value = aiData[key];
+                // Uppercase the data from AI as well before populating
+                input.value = typeof aiData[key] === 'string' ? aiData[key].toUpperCase() : aiData[key];
             }
         }
     } catch (error) {
@@ -146,9 +150,17 @@ window.downloadAllProductsCSV = async function() {
             const row = headers.map(header => {
                 let value = product[header];
                 if (value === null || value === undefined) value = '';
-                let stringValue = String(value).replace(/"/g, '""');
+
+                // Convert to string and then to uppercase if it's a string field
+                if (typeof value === 'string') {
+                    value = value.toUpperCase();
+                } else {
+                    value = String(value);
+                }
+
+                let stringValue = value.replace(/"/g, '""'); // Escape double quotes
                 if (stringValue.includes(',')) {
-                    stringValue = `"${stringValue}"`;
+                    stringValue = `"${stringValue}"`; // Enclose in double quotes if it contains a comma
                 }
                 return stringValue;
             });
@@ -158,7 +170,7 @@ window.downloadAllProductsCSV = async function() {
         const encodedUri = encodeURI(csvContent);
         const link = document.createElement("a");
         link.setAttribute("href", encodedUri);
-        link.setAttribute("download", "semua_produk.csv");
+        link.setAttribute("download", "semua_produk_uppercase.csv");
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
