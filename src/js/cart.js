@@ -45,8 +45,9 @@ function showConfirmationModal(product) {
     modalProductInfo.innerHTML = `
         <p><strong>SKU:</strong> ${product.SKU}</p>
         <p><strong>Nama:</strong> ${product.ITEMS_NAME || '<i>(tidak ada nama)</i>'}</p>
-        <p><strong>Kategori:</strong> ${product.CATEGORY || '<i>(tidak ada kategori)</i>'}</p>
         <p><strong>Merek:</strong> ${product.BRAND_NAME || '<i>(tidak ada merek)</i>'}</p>
+        <p><strong>Varian:</strong> ${product.VARIANT_NAME || '<i>(tidak ada varian)</i>'}</p>
+        <p><strong>Kategori:</strong> ${product.CATEGORY || '<i>(tidak ada kategori)</i>'}</p>
         <p><strong>Harga:</strong> ${price}</p>
     `;
     modal.classList.add('active');
@@ -81,16 +82,17 @@ function displayCart() {
     }
 
     let table = `<h3>Keranjang (${cart.length})</h3><table id="cart-table">
-        <thead><tr><th>SKU</th><th>Nama Produk</th><th>Kategori</th><th>Harga</th><th>Aksi</th></tr></thead>
+        <thead><tr><th>SKU</th><th>Nama Produk</th><th>Merek</th><th>Varian</th><th>Kategori</th><th>Harga</th><th>Aksi</th></tr></thead>
         <tbody>`;
     
     cart.forEach(p => {
         const price = p.PRICE ? new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(p.PRICE) : '';
-        // All data in cart is already uppercase
         table += `
             <tr>
                 <td data-label="SKU">${p.SKU}</td>
                 <td data-label="Nama Produk">${p.ITEMS_NAME}</td>
+                <td data-label="Merek">${p.BRAND_NAME || ''}</td>
+                <td data-label="Varian">${p.VARIANT_NAME || ''}</td>
                 <td data-label="Kategori">${p.CATEGORY || ''}</td>
                 <td data-label="Harga">${price}</td>
                 <td data-label="Aksi"><button class="btn btn-danger btn-sm" onclick='showConfirmationModal(${JSON.stringify(p)})'>Hapus</button></td>
@@ -122,17 +124,15 @@ function downloadCartCSV() {
                 value = '';
             }
 
-            // Convert to string and then to uppercase if it's a string field
-            // Although data in cart should already be uppercase, this is a safeguard.
             if (typeof value === 'string') {
                 value = value.toUpperCase();
             } else {
                 value = String(value);
             }
 
-            let stringValue = value.replace(/"/g, '""'); // Escape double quotes
+            let stringValue = value.replace(/"/g, '""');
             if (stringValue.includes(',')) {
-                stringValue = `"${stringValue}"`; // Enclose in double quotes if it contains a comma
+                stringValue = `"${stringValue}"`;
             }
             return stringValue;
         });
