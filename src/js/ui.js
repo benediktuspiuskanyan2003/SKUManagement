@@ -30,6 +30,45 @@ function clearSearchInput() {
     searchInput.focus();
 }
 
+// --- Smart Paste Functionality ---
+async function handleSmartPaste() {
+    try {
+        const text = await navigator.clipboard.readText();
+        if (!text) return;
+
+        // Helper to extract value from "KEY: (VALUE)" format
+        function extractValue(key) {
+            const regex = new RegExp(`${key}: ?\\(([^)]+)\\)`, 'i');
+            const match = text.match(regex);
+            return match ? match[1].trim() : null;
+        }
+
+        // Map keys from the pasted text to the form input IDs.
+        // SKU IS INTENTIONALLY OMITTED to prevent overwriting the existing SKU.
+        const parsedData = {
+            ITEMS_NAME: extractValue('ITEMS_NAME'),
+            CATEGORY: extractValue('CATEGORY'),
+            BRAND_NAME: extractValue('BRAND'), // Maps BRAND -> BRAND_NAME
+            VARIANT_NAME: extractValue('SATUAN') // Maps SATUAN -> VARIANT_NAME
+        };
+
+        // Populate the form fields with the extracted data
+        for (const [key, value] of Object.entries(parsedData)) {
+            if (value) {
+                const inputElement = document.getElementById(key);
+                if (inputElement) {
+                    // Adhere to the uppercase business rule
+                    inputElement.value = value.toUpperCase();
+                }
+            }
+        }
+
+    } catch (err) {
+        console.error('Gagal membaca clipboard atau mem-parsing teks:', err);
+        alert('Gagal membaca clipboard. Pastikan Anda telah memberikan izin dan format teks sudah benar.');
+    }
+}
+
 
 // --- UI View Functions ---
 function displayResults(products) {
@@ -93,6 +132,7 @@ function showAddProductForm(product = {}) {
                         <option value="chatgpt">ChatGPT</option>
                     </select>
                     <button type="button" class="btn btn-ai" onclick="fetchAiData()">Isi dengan AI</button>
+                    <button type="button" class="btn btn-secondary" onclick="handleSmartPaste()">Tempel</button> 
                  </div>
                 <button class="btn" onclick="${isUpdate ? `submitUpdate('${product.SKU}')` : 'submitProduct()'}">${isUpdate ? 'Simpan Perubahan' : 'Simpan'}</button>
                 <button class="btn btn-secondary" onclick="showSearch()">Batal</button>
@@ -122,5 +162,6 @@ window.clearInput = clearInput;
 window.showSearch = showSearch;
 window.copyToClipboard = copyToClipboard;
 window.clearSearchInput = clearSearchInput;
+window.handleSmartPaste = handleSmartPaste; // Expose the new function
 
 export { displayResults, showSearch, showAddProductForm };
