@@ -106,6 +106,15 @@ function displayCart() {
             <button class="btn btn-danger" onclick="clearCart()">Kosongkan Keranjang</button>
         </div>`;
     cartSection.innerHTML = table;
+
+    // Terapkan animasi flash pada judul keranjang
+    const cartTitle = cartSection.querySelector('h3');
+    if (cartTitle) {
+        cartTitle.classList.add('flash-update');
+        setTimeout(() => {
+            cartTitle.classList.remove('flash-update');
+        }, 700); // Sesuaikan durasi dengan animasi CSS
+    }
 }
 
 function downloadCartCSV() {

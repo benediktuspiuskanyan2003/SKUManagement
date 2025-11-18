@@ -352,3 +352,23 @@ h1, h2, h3 { text-align: center; }
     #results-table td::before, #cart-table td::before { content: attr(data-label); font-weight: bold; text-align: left; padding-right: 10px; color: #555; text-transform: none; /* Revert for labels */}
     #results-table td[data-label="Aksi"], #cart-table td[data-label="Aksi"] { justify-content: center; }
 }
+
+/* Animasi untuk update keranjang */
+@keyframes flash {
+  0% {
+    background-color: transparent;
+    transform: scale(1);
+  }
+  50% {
+    background-color: #e2f3ff; /* Flash biru muda */
+    transform: scale(1.05);
+  }
+  100% {
+    background-color: transparent;
+    transform: scale(1);
+  }
+}
+
+.flash-update {
+  animation: flash 0.7s ease-out;
+}
