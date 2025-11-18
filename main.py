@@ -116,9 +116,15 @@ def search():
     query = request.args.get('q', '')
     if not query:
         return jsonify([])
-    
+
     try:
-        response = supabase.table('products').select('*').or_(f'SKU.ilike.%{query}%,ITEMS_NAME.ilike.%{query}%').execute()
+        if query == '*':
+            # If the query is a wildcard, select all products
+            response = supabase.table('products').select('*').execute()
+        else:
+            # Otherwise, perform a search based on SKU or ITEMS_NAME
+            response = supabase.table('products').select('*').or_(f'SKU.ilike.%{query}%,ITEMS_NAME.ilike.%{query}%').execute()
+        
         return jsonify(response.data)
 
     except Exception as e:
@@ -157,8 +163,8 @@ def enrich_with_ai():
 
     # MODIFIED: Stricter prompt to prevent guessing.
     prompt = f"""Anda adalah asisten data produk yang akurat. Berikan data untuk produk dengan SKU/barcode '{sku}' dalam format JSON. 
-Nama field harus huruf kecil dan snake_case: 'items_name', 'produsen', 'brand_name', dan 'variant_name'.
-Untuk field 'produsen', isi dengan nama perusahaan manufaktur legal (PT, CV, Corp, Ltd., dsb).
+Nama field harus huruf kecil dan snake_case: 'items_name', 'category', 'brand_name', dan 'variant_name'.
+Untuk field 'category', isi dengan nama perusahaan manufaktur legal (PT, CV, Corp, Ltd., dsb).
 
 PENTING: Jika Anda tidak dapat menemukan informasi yang 100% akurat dan terverifikasi untuk sebuah field, Anda WAJIB mengembalikan string kosong "" untuk field tersebut. JANGAN MENEBAK atau mengarang informasi. 
 Pastikan outputnya hanya JSON, tanpa formatting markdown atau teks tambahan."""

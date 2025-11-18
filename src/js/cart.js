@@ -1,3 +1,4 @@
+
 let cart = [];
 const cartSection = document.getElementById('cart-section');
 const modal = document.getElementById('confirmation-modal');
@@ -88,28 +89,34 @@ function displayCart() {
     table += `</tbody></table>`;
     table += `
         <div class="form-buttons">
-            <button class="btn btn-info" onclick="downloadCSV()">Unduh CSV</button>
+            <button class="btn btn-info" onclick="downloadCartCSV()">Unduh CSV Keranjang</button>
             <button class="btn btn-danger" onclick="clearCart()">Kosongkan Keranjang</button>
         </div>`;
     cartSection.innerHTML = table;
 }
 
-function downloadCSV() {
+function downloadCartCSV() {
+    if (cart.length === 0) {
+        alert('Keranjang kosong. Tidak ada data untuk diunduh.');
+        return;
+    }
+
     const headers = ['SKU', 'ITEMS_NAME', 'CATEGORY', 'BRAND_NAME', 'VARIANT_NAME', 'PRICE'];
-    let csvContent = "data:text/csv;charset=utf-8," + headers.join(",") + "";
+    let csvContent = "data:text/csv;charset=utf-8," + headers.join(",") + "\n";
 
     cart.forEach(product => {
         const row = headers.map(header => {
             let value = product[header];
-            if (value === null || value === undefined) value = '';
-            
-            const stringValue = String(value);
-            if (stringValue.includes(',') || stringValue.includes('"')) {
-                return `"${stringValue.replace(/"/g, '""')}"`;
+            if (value === null || value === undefined) {
+                value = '';
+            }
+            let stringValue = String(value).replace(/"/g, '""');
+            if (stringValue.includes(',')) {
+                stringValue = `"${stringValue}"`;
             }
             return stringValue;
         });
-        csvContent += row.join(",") + "";
+        csvContent += row.join(",") + "\n";
     });
 
     const encodedUri = encodeURI(csvContent);
@@ -129,6 +136,6 @@ cancelBtn.addEventListener('click', hideModal);
 window.addToCart = addToCart;
 window.showConfirmationModal = showConfirmationModal;
 window.clearCart = clearCart;
-window.downloadCSV = downloadCSV;
+window.downloadCartCSV = downloadCartCSV; // Ganti nama fungsi yang diekspos
 
 export { loadCart };

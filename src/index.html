@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="id">
 <head>
@@ -14,7 +15,9 @@
     <div class="container">
         <div class="header">
             <h1>Manajemen SKU</h1>
-            <button class="btn btn-secondary" onclick="logout()">Logout</button>
+            <div class="header-buttons">
+                 <button class="btn btn-danger" onclick="logout()">Logout</button>
+            </div>
         </div>
         <div id="scanner-container" style="display:none;">
             <div id="qr-reader"></div>
@@ -24,7 +27,7 @@
             <div id="search-section">
                 <div class="search-box">
                      <div class="search-input-wrapper">
-                        <input type="text" id="search-input" placeholder="CARI/SCAN SKU...">
+                        <input type="text" id="search-input" placeholder="CARI/SCAN SKU atau biarkan kosong untuk semua produk...">
                         <button class="input-btn clear-search-btn" onclick="clearSearchInput()" title="Hapus Input">×</button>
                     </div>
                     <div class="search-controls">
@@ -55,5 +58,6 @@
     <!-- Load authentication and main scripts -->
     <script src="js/auth.js"></script>
     <script type="module" src="js/main.js"></script>
+    <script type="module" src="js/cart.js"></script>
 </body>
 </html>

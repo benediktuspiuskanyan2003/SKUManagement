@@ -33,8 +33,8 @@ function clearSearchInput() {
 
 // --- UI View Functions ---
 function displayResults(products) {
-    // MODIFIED: Mengubah 'Kategori' menjadi 'Produsen'
-    let table = `<table id="results-table"><thead><tr><th>SKU</th><th>Nama Produk</th><th>Produsen</th><th>Harga</th><th>Aksi</th></tr></thead><tbody>`;
+    // Menampilkan kolom 'CATEGORY' sebagai 'Kategori'
+    let table = `<table id="results-table"><thead><tr><th>SKU</th><th>Nama Produk</th><th>Kategori</th><th>Harga</th><th>Aksi</th></tr></thead><tbody>`;
     products.forEach(p => {
         const price = p.PRICE ? new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(p.PRICE) : '';
         // Encode JSON for safe use in HTML onclick attribute
@@ -47,7 +47,7 @@ function displayResults(products) {
                     <button class="btn btn-secondary btn-sm" onclick="copyToClipboard('${p.SKU}', this)">Salin</button>
                 </td>
                 <td data-label="Nama Produk">${p.ITEMS_NAME}</td>
-                <td data-label="Produsen">${p.PRODUSEN || ''}</td>
+                <td data-label="Kategori">${p.CATEGORY || ''}</td>
                 <td data-label="Harga">${price}</td>
                 <td data-label="Aksi">
                     <button class="btn btn-secondary btn-sm" onclick='editProduct(${safeProductJson})'>Edit</button>
@@ -81,7 +81,7 @@ function showAddProductForm(product = {}) {
             <div class="form-grid">
                 ${createInput('SKU', 'SKU / Barcode', product?.SKU || skuValue, isUpdate)}
                 ${createInput('ITEMS_NAME', 'Nama Produk', product?.ITEMS_NAME)}
-                ${createInput('PRODUSEN', 'Produsen', product?.PRODUSEN)} 
+                ${createInput('CATEGORY', 'Kategori', product?.CATEGORY)} 
                 ${createInput('BRAND_NAME', 'Merek', product?.BRAND_NAME)}
                 ${createInput('VARIANT_NAME', 'Varian', product?.VARIANT_NAME)}
                 ${createInput('PRICE', 'Harga', product?.PRICE)}

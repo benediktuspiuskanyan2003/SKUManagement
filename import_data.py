@@ -57,11 +57,12 @@ def import_data():
             encoding='latin-1'
         ).fillna('')
         
-        # --- LANGKAH PENTING: Mengganti nama kolom ---
-        # Mengubah nama kolom 'CATEGORY' dari file CSV menjadi 'PRODUSEN' agar cocok dengan tabel Supabase
-        if 'CATEGORY' in df.columns:
-            df.rename(columns={'CATEGORY': 'PRODUSEN'}, inplace=True)
-            print("   -> Info: Kolom 'CATEGORY' di CSV akan dipetakan ke kolom 'PRODUSEN' di database.")
+        # --- LANGKAH PENTING: Menyesuaikan nama kolom agar sesuai dengan database ---
+        if 'PRODUSEN' in df.columns:
+            df.rename(columns={'PRODUSEN': 'CATEGORY'}, inplace=True)
+            print("   -> Info: Kolom 'PRODUSEN' di CSV telah diubah namanya menjadi 'CATEGORY' untuk database.")
+        elif 'CATEGORY' in df.columns:
+            print("   -> Info: Kolom 'CATEGORY' di CSV akan digunakan langsung.")
 
         if 'SKU' not in df.columns:
             print(f"   ERROR: Kolom 'SKU' tidak ditemukan. Nama kolom yang terdeteksi: {list(df.columns)}")

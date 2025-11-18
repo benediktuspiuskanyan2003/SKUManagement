@@ -1,3 +1,4 @@
+
 import { searchProducts, addProduct, updateProduct, enrichWithAI } from './database.js';
 import { displayResults, showSearch, showAddProductForm } from './ui.js';
 import { loadCart } from './cart.js';
@@ -10,18 +11,23 @@ window.searchProduct = async function() {
     const query = searchInput.value.trim();
     const resultsDiv = document.getElementById('results-section');
     
-    if (!query) return;
+    // If query is empty, treat it as a request to get all products
+    const fetchQuery = query === '' ? '*' : query;
 
     resultsDiv.innerHTML = `<p class="message-info">Mencari...</p>`;
 
     try {
-        const results = await searchProducts(query);
+        const results = await searchProducts(fetchQuery);
         if (results && results.length > 0) {
             displayResults(results);
         } else {
-            // If no results, show the "add product" form with the SKU pre-filled
-            resultsDiv.innerHTML = ''; // Clear "Mencari..."
-            showAddProductForm({ SKU: query });
+            // If no results for a specific query, show the "add product" form
+            if (query !== '') {
+                 resultsDiv.innerHTML = ''; // Clear "Mencari..."
+                 showAddProductForm({ SKU: query });
+            } else {
+                 resultsDiv.innerHTML = `<p class="message-info">Tidak ada produk ditemukan.</p>`;
+            }
         }
     } catch (error) {
         console.error('Error during search:', error);
@@ -117,16 +123,66 @@ window.fetchAiData = async function() {
     }
 };
 
+// --- Download All Products CSV Function (Global) ---
+window.downloadAllProductsCSV = async function() {
+    console.log("Memulai unduhan CSV semua produk...");
+    const button = document.getElementById('download-csv-btn');
+    if(button) {
+        button.innerHTML = 'Mengunduh...';
+        button.disabled = true;
+    }
+
+    try {
+        const products = await searchProducts('*'); 
+        if (!products || products.length === 0) {
+            alert("Tidak ada produk untuk diunduh.");
+            return;
+        }
+
+        const headers = ["SKU", "ITEMS_NAME", "CATEGORY", "BRAND_NAME", "VARIANT_NAME", "PRICE"];
+        let csvContent = "data:text/csv;charset=utf-8," + headers.join(",") + "\n";
+
+        products.forEach(product => {
+            const row = headers.map(header => {
+                let value = product[header];
+                if (value === null || value === undefined) value = '';
+                let stringValue = String(value).replace(/"/g, '""');
+                if (stringValue.includes(',')) {
+                    stringValue = `"${stringValue}"`;
+                }
+                return stringValue;
+            });
+            csvContent += row.join(",") + "\n";
+        });
+
+        const encodedUri = encodeURI(csvContent);
+        const link = document.createElement("a");
+        link.setAttribute("href", encodedUri);
+        link.setAttribute("download", "semua_produk.csv");
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+
+    } catch (error) {
+        console.error("Gagal mengunduh CSV:", error);
+        alert(`Gagal mengunduh CSV: ${error.message}`);
+    } finally {
+         if(button) {
+            button.innerHTML = 'Unduh Semua Produk';
+            button.disabled = false;
+        }
+    }
+};
+
 
 // --- Scanner Functions ---
 let html5QrcodeScanner;
-const scanSuccessSound = new Audio('/audio/beep-07a.mp3'); // Create audio object
+const scanSuccessSound = new Audio('/audio/beep-07a.mp3');
 
 window.startScanner = function() {
     document.getElementById('main-content').style.display = 'none';
     document.getElementById('scanner-container').style.display = 'block';
 
-    // Lazily create the scanner instance
     if (!html5QrcodeScanner) {
         html5QrcodeScanner = new Html5Qrcode("qr-reader");
     }
@@ -137,15 +193,12 @@ window.startScanner = function() {
         { facingMode: "environment" }, 
         config, 
         (decodedText, decodedResult) => {
-            // On successful scan, play sound, stop scanner, pre-fill, and search.
-            scanSuccessSound.play(); // Play the beep sound
+            scanSuccessSound.play();
             document.getElementById('search-input').value = decodedText;
             window.stopScanner(); 
             window.searchProduct();
         }, 
-        (errorMessage) => {
-            // Error callback, can be ignored.
-        }
+        (errorMessage) => { /* ignore */ }
     ).catch((err) => {
         console.error(`Gagal memulai pemindai: ${err}`);
     });
@@ -153,12 +206,9 @@ window.startScanner = function() {
 
 window.stopScanner = function() {
     if (html5QrcodeScanner && html5QrcodeScanner.isScanning) {
-        html5QrcodeScanner.stop().then(() => {
-            // Success
-        }).catch(err => {
+        html5QrcodeScanner.stop().catch(err => {
             console.error('Gagal menghentikan pemindai:', err);
         }).finally(() => {
-            // Always restore the main view
             document.getElementById('main-content').style.display = 'block';
             document.getElementById('scanner-container').style.display = 'none';
         });
@@ -168,10 +218,9 @@ window.stopScanner = function() {
 
 // --- App Initialization ---
 function initializeApp() {
-    loadCart(); // Load cart from localStorage
-    showSearch(); // Set the initial view
+    loadCart();
+    showSearch();
     
-    // Add event listener for 'Enter' key on the search input
     const searchInput = document.getElementById('search-input');
     searchInput.addEventListener('keyup', (event) => {
         if (event.key === 'Enter') {
@@ -180,5 +229,9 @@ function initializeApp() {
     });
 }
 
-// Run the app initialization once the DOM is fully loaded
 document.addEventListener('DOMContentLoaded', initializeApp);
+
+// Clear search input function
+window.clearSearchInput = function() {
+    document.getElementById('search-input').value = '';
+};
