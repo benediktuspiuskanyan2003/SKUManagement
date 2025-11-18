@@ -20,11 +20,21 @@ function loadCart() {
 }
 
 function addToCart(product) {
-    if (cart.some(p => p.SKU === product.SKU)) {
+    // Ensure product data is uppercase when adding to cart
+    const uppercaseProduct = {};
+    for (const key in product) {
+        if (typeof product[key] === 'string') {
+            uppercaseProduct[key] = product[key].toUpperCase();
+        } else {
+            uppercaseProduct[key] = product[key];
+        }
+    }
+
+    if (cart.some(p => p.SKU === uppercaseProduct.SKU)) {
         alert('Produk ini sudah ada di keranjang.');
         return;
     }
-    cart.push(product);
+    cart.push(uppercaseProduct);
     saveCart();
     displayCart();
 }
@@ -76,6 +86,7 @@ function displayCart() {
     
     cart.forEach(p => {
         const price = p.PRICE ? new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(p.PRICE) : '';
+        // All data in cart is already uppercase
         table += `
             <tr>
                 <td data-label="SKU">${p.SKU}</td>
@@ -110,9 +121,18 @@ function downloadCartCSV() {
             if (value === null || value === undefined) {
                 value = '';
             }
-            let stringValue = String(value).replace(/"/g, '""');
+
+            // Convert to string and then to uppercase if it's a string field
+            // Although data in cart should already be uppercase, this is a safeguard.
+            if (typeof value === 'string') {
+                value = value.toUpperCase();
+            } else {
+                value = String(value);
+            }
+
+            let stringValue = value.replace(/"/g, '""'); // Escape double quotes
             if (stringValue.includes(',')) {
-                stringValue = `"${stringValue}"`;
+                stringValue = `"${stringValue}"`; // Enclose in double quotes if it contains a comma
             }
             return stringValue;
         });
@@ -122,7 +142,7 @@ function downloadCartCSV() {
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement("a");
     link.setAttribute("href", encodedUri);
-    link.setAttribute("download", "produk_keranjang.csv");
+    link.setAttribute("download", "produk_keranjang_uppercase.csv");
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -136,6 +156,6 @@ cancelBtn.addEventListener('click', hideModal);
 window.addToCart = addToCart;
 window.showConfirmationModal = showConfirmationModal;
 window.clearCart = clearCart;
-window.downloadCartCSV = downloadCartCSV; // Ganti nama fungsi yang diekspos
+window.downloadCartCSV = downloadCartCSV;
 
 export { loadCart };
