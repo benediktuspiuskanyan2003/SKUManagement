@@ -24,11 +24,22 @@ body {
     color: var(--text-color);
     margin: 0;
     display: flex;
-    justify-content: center;
-    align-items: flex-start;
+    flex-direction: column; /* Changed */
+    align-items: center; /* Changed */
+    justify-content: flex-start; /* Changed */
     min-height: 100vh;
     padding: 10px;
     box-sizing: border-box;
+}
+
+/* --- Animated Header --- */
+.site-header {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 10px 0;
+    margin-bottom: 10px;
 }
 
 /* --- Login Page Styles --- */
@@ -126,7 +137,7 @@ body {
     box-shadow: var(--shadow);
     padding: 20px;
     box-sizing: border-box;
-    margin-top: 20px;
+    /* margin-top: 20px; Removed */
 }
 
 .header {

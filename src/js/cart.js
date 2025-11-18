@@ -141,8 +141,15 @@ function downloadCartCSV() {
 
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement("a");
+
+    // Membuat nama file dinamis berdasarkan tanggal dan waktu
+    const now = new Date();
+    const pad = (num) => num.toString().padStart(2, '0');
+    const timestamp = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}_${pad(now.getHours())}-${pad(now.getMinutes())}-${pad(now.getSeconds())}`;
+    const filename = `keranjang_${timestamp}.csv`;
+
     link.setAttribute("href", encodedUri);
-    link.setAttribute("download", "produk_keranjang_uppercase.csv");
+    link.setAttribute("download", filename);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
