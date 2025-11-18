@@ -63,8 +63,18 @@ def search():
 @app.route("/api/add_product", methods=['POST'])
 def add_product():
     data = request.json
-    response = supabase.table('products').insert(data).execute()
-    return jsonify({"status": "success", "data": response.data})
+    # Convert empty string for PRICE to None, so it becomes NULL in the database
+    if 'PRICE' in data and data['PRICE'] == '':
+        data['PRICE'] = None
+
+    try:
+        response = supabase.table('products').insert(data).execute()
+        # The data from the response is already in the correct list format
+        return jsonify({"status": "success", "data": response.data})
+    except Exception as e:
+        print(f"Supabase insert error: {e}")
+        # Return a JSON error response with a 500 status code
+        return jsonify({"error": f"Gagal menambahkan produk ke database: {str(e)}"}), 500
 
 
 @app.route("/api/update_product", methods=['PUT'])
@@ -74,10 +84,21 @@ def update_product():
     if not sku:
         return jsonify({"error": "SKU is required"}), 400
     
-    response = supabase.table('products').update(data).eq('SKU', sku).execute()
-    updated_data = supabase.table('products').select('*').eq('SKU', sku).execute()
+    # Convert empty string for PRICE to None, so it becomes NULL in the database
+    if 'PRICE' in data and data['PRICE'] == '':
+        data['PRICE'] = None
 
-    return jsonify({"status": "success", "data": updated_data.data})
+    try:
+        # First, update the product
+        supabase.table('products').update(data).eq('SKU', sku).execute()
+        # Then, fetch the complete updated record to send back to the frontend
+        updated_data_response = supabase.table('products').select('*').eq('SKU', sku).execute()
+
+        return jsonify({"status": "success", "data": updated_data_response.data})
+    except Exception as e:
+        print(f"Supabase update error: {e}")
+        # Return a JSON error response with a 500 status code
+        return jsonify({"error": f"Gagal memperbarui produk di database: {str(e)}"}), 500
 
 @app.route("/api/enrich_with_ai")
 def enrich_with_ai():
