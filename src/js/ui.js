@@ -1,6 +1,16 @@
+
+import { addProduct } from './database.js';
+
 const resultsDiv = document.getElementById('results-section');
 const searchInput = document.getElementById('search-input');
 let editingSku = null;
+
+// --- Add Variant Modal Elements ---
+const addVariantModal = document.getElementById('add-variant-modal');
+const variantModalSaveBtn = document.getElementById('variant-modal-save-btn');
+const variantModalCancelBtn = document.getElementById('variant-modal-cancel-btn');
+
+let parentProductForVariant = null;
 
 // --- Helper Functions ---
 function copyToClipboard(text, buttonElement) {
@@ -40,7 +50,7 @@ function setVariantName(unit) {
 }
 
 function updateVariantButtons(currentValue) {
-    const buttons = document.querySelectorAll('.btn-variant');
+    const buttons = document.querySelectorAll('#product-form .btn-variant');
     buttons.forEach(btn => {
         if (btn.innerText.toUpperCase() === currentValue.toUpperCase()) {
             btn.classList.add('selected');
@@ -96,6 +106,9 @@ async function handleSmartPaste() {
 // --- UI View Functions ---
 function displayResults(products) {
     let table = `<table id="results-table"><thead><tr><th>SKU</th><th>Nama Produk</th><th>Merek</th><th>Varian</th><th>Kategori</th><th>Harga</th><th>Aksi</th></tr></thead><tbody>`;
+    
+    const safeProductsListJson = JSON.stringify(products).replace(/'/g, '&#39;');
+
     products.forEach(p => {
         const price = p.PRICE ? new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(p.PRICE) : '';
         const safeProductJson = JSON.stringify(p).replace(/'/g, '&#39;');
@@ -113,6 +126,7 @@ function displayResults(products) {
                 <td data-label="Harga">${price}</td>
                 <td data-label="Aksi">
                     <button class="btn btn-secondary btn-sm" onclick='editProduct(${safeProductJson})'>Edit</button>
+                    <button class="btn btn-success btn-sm" onclick='showAddVariantModal(${safeProductJson}, ${safeProductsListJson})'>(+) Varian</button>
                     <button class="btn btn-info btn-sm" onclick='window.addToCart(${safeProductJson})'>+ Keranjang</button>
                 </td>
             </tr>`;
@@ -127,7 +141,7 @@ function showAddProductForm(product = {}) {
     
     const variantOptions = ['PCS', 'RENTENG', 'PACK', 'BOX', 'DUS', 'KARUNG', 'LUSIN', 'GROSS', 'CUP', 'CAN', 'BOTTLE', 'SACH'];
     const colorClasses = ['color-1', 'color-2', 'color-3', 'color-4', 'color-5', 'color-6'];
-    const variantButtons = variantOptions.map((opt, index) => 
+    const variantButtonsHTML = variantOptions.map((opt, index) => 
         `<button type="button" class="btn btn-variant ${colorClasses[index % colorClasses.length]}" onclick="setVariantName('${opt}')">${opt}</button>`
     ).join('');
 
@@ -156,7 +170,7 @@ function showAddProductForm(product = {}) {
                 ${createInput('ITEMS_NAME', 'Nama Produk', product?.ITEMS_NAME)}
                 ${createInput('CATEGORY', 'Kategori', product?.CATEGORY)} 
                 ${createInput('BRAND_NAME', 'Merek', product?.BRAND_NAME)}
-                ${createInput('VARIANT_NAME', 'Varian', product?.VARIANT_NAME, false, `<div class="variant-buttons">${variantButtons}</div>`)}
+                ${createInput('VARIANT_NAME', 'Varian', product?.VARIANT_NAME, false, `<div class="variant-buttons">${variantButtonsHTML}</div>`)}
                 ${createInput('PRICE', 'Harga', product?.PRICE)}
             </div>
             <div class="form-buttons">
@@ -193,6 +207,106 @@ function showSearch() {
     document.getElementById('scanner-container').style.display = 'none';
 }
 
+// --- Add Variant Modal Logic ---
+function setVariantModalName(unit) {
+    const variantInput = document.getElementById('variant-modal-variant-name');
+    if (variantInput) {
+        variantInput.value = unit.toUpperCase();
+        variantInput.focus();
+        updateVariantModalButtons(unit.toUpperCase());
+    }
+}
+
+function updateVariantModalButtons(currentValue) {
+    const buttons = document.querySelectorAll('#add-variant-modal .btn-variant');
+    buttons.forEach(btn => {
+        if (btn.innerText.toUpperCase() === currentValue.toUpperCase()) {
+            btn.classList.add('selected');
+        } else {
+            btn.classList.remove('selected');
+        }
+    });
+}
+
+function generateNextSku(baseSku, existingProducts) {
+    const rootSku = String(baseSku).replace(/[A-Z]$/, '');
+    const suffixes = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+    const existingSkus = new Set(existingProducts.map(p => p.SKU));
+
+    for (let i = 0; i < suffixes.length; i++) {
+        const nextSku = rootSku + suffixes[i];
+        if (!existingSkus.has(nextSku)) {
+            return nextSku;
+        }
+    }
+    return null; // All suffixes are taken
+}
+
+function showAddVariantModal(product, allProducts) {
+    parentProductForVariant = product;
+    const nextSku = generateNextSku(product.SKU, allProducts);
+
+    if (!nextSku) {
+        alert('Tidak dapat membuat SKU varian baru, semua sufiks (A-Z) sudah digunakan.');
+        return;
+    }
+    // --- Create Variant Buttons for Modal ---
+    const variantOptions = ['PCS', 'RENTENG', 'PACK', 'BOX', 'DUS', 'KARUNG', 'LUSIN', 'GROSS', 'CUP', 'CAN', 'BOTTLE', 'SACH'];
+    const colorClasses = ['color-1', 'color-2', 'color-3', 'color-4', 'color-5', 'color-6'];
+    const variantButtonsHTML = variantOptions.map((opt, index) => 
+        `<button type="button" class="btn btn-variant ${colorClasses[index % colorClasses.length]}" onclick="setVariantModalName('${opt}')">${opt}</button>`
+    ).join('');
+    
+    document.getElementById('variant-modal-buttons-container').innerHTML = variantButtonsHTML;
+    // ---
+
+    document.getElementById('variant-modal-product-name').textContent = product.ITEMS_NAME || '';
+    document.getElementById('variant-modal-brand-name').textContent = product.BRAND_NAME || '';
+    document.getElementById('variant-modal-category').textContent = product.CATEGORY || '';
+    document.getElementById('variant-modal-sku').value = nextSku;
+    document.getElementById('variant-modal-variant-name').value = '';
+    document.getElementById('variant-modal-price').value = '';
+
+    updateVariantModalButtons(''); // Clear selection
+    addVariantModal.classList.add('active');
+    document.getElementById('variant-modal-variant-name').focus();
+}
+
+function hideAddVariantModal() {
+    addVariantModal.classList.remove('active');
+    parentProductForVariant = null;
+}
+
+async function saveNewVariant() {
+    const newVariant = {
+        SKU: document.getElementById('variant-modal-sku').value,
+        ITEMS_NAME: parentProductForVariant.ITEMS_NAME,
+        BRAND_NAME: parentProductForVariant.BRAND_NAME,
+        CATEGORY: parentProductForVariant.CATEGORY,
+        VARIANT_NAME: document.getElementById('variant-modal-variant-name').value,
+        PRICE: document.getElementById('variant-modal-price').value
+    };
+
+    if (!newVariant.SKU || !newVariant.VARIANT_NAME) {
+        alert('SKU dan Nama Varian Baru tidak boleh kosong.');
+        return;
+    }
+
+    try {
+        const result = await addProduct(newVariant);
+        alert('Varian baru berhasil ditambahkan!');
+        hideAddVariantModal();
+        window.searchProduct(); 
+    } catch (error) {
+        console.error('Gagal menyimpan varian baru:', error);
+        alert(`Gagal menyimpan varian baru: ${error.message}`);
+    }
+}
+
+// --- Event Listeners & Global Exposure ---
+variantModalSaveBtn.addEventListener('click', saveNewVariant);
+variantModalCancelBtn.addEventListener('click', hideAddVariantModal);
+
 // Expose functions to global scope for HTML onclick attributes
 window.showAddProductForm = showAddProductForm;
 window.editProduct = editProduct;
@@ -202,6 +316,12 @@ window.copyToClipboard = copyToClipboard;
 window.clearSearchInput = clearSearchInput;
 window.handleSmartPaste = handleSmartPaste;
 window.setVariantName = setVariantName;
-window.updateVariantButtons = updateVariantButtons; // Expose for oninput
+window.updateVariantButtons = updateVariantButtons; 
+window.showAddVariantModal = showAddVariantModal;
+
+// Expose MODAL specific functions
+window.setVariantModalName = setVariantModalName;
+window.updateVariantModalButtons = updateVariantModalButtons;
+
 
 export { displayResults, showSearch, showAddProductForm };

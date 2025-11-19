@@ -56,6 +56,37 @@
         </div>
     </div>
 
+    <!-- Add Variant Modal -->
+    <div id="add-variant-modal" class="modal-overlay">
+        <div class="modal-content">
+            <h4>Tambah Varian Produk</h4>
+            <form id="add-variant-form">
+                <div class="product-info">
+                    <p><strong>Produk:</strong> <span id="variant-modal-product-name"></span></p>
+                    <p><strong>Merek:</strong> <span id="variant-modal-brand-name"></span></p>
+                    <p><strong>Kategori:</strong> <span id="variant-modal-category"></span></p>
+                </div>
+                <div class="form-group">
+                    <label for="variant-modal-sku">SKU Baru (disarankan)</label>
+                    <input type="text" id="variant-modal-sku" required>
+                </div>
+                <div class="form-group">
+                    <label for="variant-modal-variant-name">Nama Varian Baru</label>
+                    <input type="text" id="variant-modal-variant-name" placeholder="e.g., RENTENG, DUS, PACK" required oninput="updateVariantModalButtons(this.value)">
+                    <div id="variant-modal-buttons-container" class="variant-buttons"></div>
+                </div>
+                <div class="form-group">
+                    <label for="variant-modal-price">Harga Baru</label>
+                    <input type="number" id="variant-modal-price" placeholder="e.g., 12000">
+                </div>
+            </form>
+            <div class="modal-buttons">
+                <button id="variant-modal-save-btn" class="btn btn-success">Simpan Varian</button>
+                <button id="variant-modal-cancel-btn" class="btn btn-secondary">Batal</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Load main scripts -->
     <script type="module" src="js/main.js"></script>
     <script type="module" src="js/cart.js"></script>

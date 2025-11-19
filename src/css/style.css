@@ -278,7 +278,20 @@ h1, h2, h3 { text-align: center; }
 
 .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.6); display: flex; align-items: center; justify-content: center; z-index: 1000; opacity: 0; visibility: hidden; transition: opacity 0.3s ease, visibility 0.3s ease; }
 .modal-overlay.active { opacity: 1; visibility: visible; }
-.modal-content { background: var(--surface-color); padding: 25px; border-radius: var(--border-radius); width: 90%; max-width: 400px; text-align: center; transform: scale(0.9); transition: transform 0.3s ease; }
+
+.modal-content {
+    background: var(--surface-color);
+    padding: 25px;
+    border-radius: var(--border-radius);
+    width: 90%;
+    max-width: 400px;
+    text-align: center;
+    transform: scale(0.9);
+    transition: transform 0.3s ease;
+    max-height: 90vh; /* Batasi tinggi modal */
+    overflow-y: auto;   /* Tambahkan scroll jika konten meluap */
+}
+
 .modal-overlay.active .modal-content { transform: scale(1); }
 .modal-content h4 { margin-top: 0; font-size: 1.2em; }
 .modal-content .product-info { background-color: var(--background-color); border-radius: var(--border-radius); padding: 15px; margin: 20px 0; text-align: left; border: 1px solid var(--border-color); }
@@ -371,4 +384,19 @@ h1, h2, h3 { text-align: center; }
 
 .flash-update {
   animation: flash 0.7s ease-out;
+}
+
+#add-variant-form {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+#add-variant-form .form-group input {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+    font-size: 16px;
+    box-sizing: border-box;
 }
