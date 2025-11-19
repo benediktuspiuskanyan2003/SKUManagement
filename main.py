@@ -114,13 +114,20 @@ def update_product():
 @app.route("/api/enrich_with_ai")
 def enrich_with_ai():
     sku = request.args.get('sku')
-    provider = request.args.get('provider', 'gemini') # Default to Gemini
+    name_hint = request.args.get('name_hint', '') # Get product name hint
+    provider = request.args.get('provider', 'gemini')
 
     if not sku:
         return jsonify({"error": "SKU is required"}), 400
 
-    # MODIFIED: Stricter prompt to prevent guessing.
-    prompt = f"""Anda adalah asisten data produk yang akurat. Berikan data untuk produk dengan SKU/barcode '{sku}' dalam format JSON. 
+    # Build the prompt dynamically
+    prompt_intro = f"Anda adalah asisten data produk yang akurat. Berikan data untuk produk dengan SKU/barcode '{sku}'"
+    if name_hint:
+        prompt_intro += f" dan nama produk yang mirip dengan '{name_hint}'"
+    
+    prompt_intro += " dalam format JSON."
+
+    prompt = f"""{prompt_intro}
 Nama field harus huruf kecil dan snake_case: 'items_name', 'category', 'brand_name', dan 'variant_name'.
 Untuk field 'category', isi dengan nama perusahaan manufaktur legal (PT, CV, Corp, Ltd., dsb).
 
@@ -129,7 +136,6 @@ Pastikan outputnya hanya JSON, tanpa formatting markdown atau teks tambahan."""
 
     try:
         if provider == 'chatgpt':
-            # MODIFIED: Added temperature parameter to reduce creativity.
             completion = openai_client.chat.completions.create(
                 model="gpt-3.5-turbo",
                 messages=[
@@ -141,7 +147,6 @@ Pastikan outputnya hanya JSON, tanpa formatting markdown atau teks tambahan."""
             response_text = completion.choices[0].message.content
         else: # Default to Gemini
             model = genai.GenerativeModel('gemini-pro')
-            # MODIFIED: Added generation_config with temperature.
             generation_config = genai.types.GenerationConfig(temperature=0.2)
             response = model.generate_content(prompt, generation_config=generation_config)
             response_text = response.text

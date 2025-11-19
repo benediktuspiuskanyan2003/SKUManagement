@@ -103,6 +103,65 @@ async function handleSmartPaste() {
     }
 }
 
+// --- AI Data Fetching ---
+async function fetchAiData() {
+    const sku = document.getElementById('SKU').value;
+    const nameHint = document.getElementById('ITEMS_NAME').value; 
+    const provider = document.getElementById('ai-provider-select').value;
+    const button = document.querySelector('.btn-ai');
+
+    if (!sku) {
+        alert('Harap masukkan SKU terlebih dahulu.');
+        document.getElementById('SKU').focus();
+        return;
+    }
+    
+    if (!nameHint) {
+        const proceed = confirm("Nama Produk masih kosong. Hasil AI mungkin kurang akurat. Lanjutkan?");
+        if (!proceed) {
+            document.getElementById('ITEMS_NAME').focus();
+            return; 
+        }
+    }
+
+    const originalButtonText = button.innerHTML;
+    button.innerHTML = 'Memproses...';
+    button.disabled = true;
+
+    try {
+        const url = new URL('/api/enrich_with_ai', window.location.origin);
+        url.searchParams.append('sku', sku);
+        if (nameHint) {
+            url.searchParams.append('name_hint', nameHint);
+        }
+        url.searchParams.append('provider', provider);
+
+        const response = await fetch(url);
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || 'Gagal mengambil data dari AI.');
+        }
+
+        const data = await response.json();
+
+        if (data.items_name) document.getElementById('ITEMS_NAME').value = data.items_name.toUpperCase();
+        if (data.category) document.getElementById('CATEGORY').value = data.category.toUpperCase();
+        if (data.brand_name) document.getElementById('BRAND_NAME').value = data.brand_name.toUpperCase();
+        if (data.variant_name) {
+            document.getElementById('VARIANT_NAME').value = data.variant_name.toUpperCase();
+            updateVariantButtons(data.variant_name.toUpperCase());
+        }
+
+    } catch (error) {
+        console.error('Error fetching AI data:', error);
+        alert(`Terjadi kesalahan: ${error.message}`);
+    } finally {
+        button.innerHTML = originalButtonText;
+        button.disabled = false;
+    }
+}
+
+
 // --- UI View Functions ---
 function displayResults(products) {
     let table = `<table id="results-table"><thead><tr><th>SKU</th><th>Nama Produk</th><th>Merek</th><th>Varian</th><th>Kategori</th><th>Harga</th><th>Aksi</th></tr></thead><tbody>`;
@@ -318,6 +377,7 @@ window.handleSmartPaste = handleSmartPaste;
 window.setVariantName = setVariantName;
 window.updateVariantButtons = updateVariantButtons; 
 window.showAddVariantModal = showAddVariantModal;
+window.fetchAiData = fetchAiData; // Expose the new AI function
 
 // Expose MODAL specific functions
 window.setVariantModalName = setVariantModalName;
