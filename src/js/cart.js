@@ -7,6 +7,19 @@ const confirmBtn = document.getElementById('modal-confirm-btn');
 const cancelBtn = document.getElementById('modal-cancel-btn');
 let productToRemove = null;
 
+// --- TOAST NOTIFICATION FUNCTION ---
+function showToast(message, duration = 2000) {
+    const toast = document.getElementById('toast-notification');
+    if (!toast) return;
+
+    toast.textContent = message;
+    toast.classList.add('show');
+
+    setTimeout(() => {
+        toast.classList.remove('show');
+    }, duration);
+}
+
 function saveCart() {
     localStorage.setItem('skuManagementCart', JSON.stringify(cart));
 }
@@ -31,12 +44,13 @@ function addToCart(product) {
     }
 
     if (cart.some(p => p.SKU === uppercaseProduct.SKU)) {
-        alert('Produk ini sudah ada di keranjang.');
+        showToast('Produk ini sudah ada di keranjang.');
         return;
     }
     cart.push(uppercaseProduct);
     saveCart();
     displayCart();
+    showToast('Produk ditambahkan ke keranjang.');
 }
 
 function showConfirmationModal(product) {
@@ -63,6 +77,7 @@ function removeFromCart() {
         cart = cart.filter(p => p.SKU !== productToRemove.SKU);
         saveCart();
         displayCart();
+        showToast('Produk telah dihapus.'); // Show toast on successful removal
     }
     hideModal();
 }
@@ -72,6 +87,7 @@ function clearCart() {
         cart = [];
         saveCart();
         displayCart();
+        showToast('Keranjang telah dikosongkan.'); // Show toast on clear
     }
 }
 
@@ -102,36 +118,47 @@ function displayCart() {
     table += `</tbody></table>`;
     table += `
         <div class="form-buttons">
-            <button class="btn btn-info" onclick="downloadCartCSV()">Unduh CSV Keranjang</button>
+            <button class="btn btn-info" onclick="downloadCartCSV()">Unduh Keranjang (CSV)</button>
             <button class="btn btn-danger" onclick="clearCart()">Kosongkan Keranjang</button>
         </div>`;
     cartSection.innerHTML = table;
 
-    // Terapkan animasi flash pada judul keranjang
     const cartTitle = cartSection.querySelector('h3');
     if (cartTitle) {
         cartTitle.classList.add('flash-update');
         setTimeout(() => {
             cartTitle.classList.remove('flash-update');
-        }, 700); // Sesuaikan durasi dengan animasi CSS
+        }, 700); 
     }
 }
 
 function downloadCartCSV() {
     if (cart.length === 0) {
-        alert('Keranjang kosong. Tidak ada data untuk diunduh.');
+        showToast('Keranjang kosong. Tidak ada data untuk diunduh.', 2500);
         return;
     }
 
-    const headers = ['SKU', 'ITEMS_NAME', 'CATEGORY', 'BRAND_NAME', 'VARIANT_NAME', 'PRICE'];
-    let csvContent = "data:text/csv;charset=utf-8," + headers.join(",") + "\n";
+    const storeName = prompt("Silakan masukkan Nama Toko:", "");
 
+    if (storeName === null) {
+        showToast("Unduhan dibatalkan.");
+        return; 
+    }
+
+    const mokaHeaders = [
+        'Category', 'SKU', 'Items Name (Do Not Edit)', 
+        'Brand Name', 'Variant name', 'Basic - Price'
+    ];
+    const dataKeys = [
+        'CATEGORY', 'SKU', 'ITEMS_NAME', 
+        'BRAND_NAME', 'VARIANT_NAME', 'PRICE'
+    ];
+
+    let csvContent = "data:text/csv;charset=utf-8," + mokaHeaders.join(",") + "\n";
     cart.forEach(product => {
-        const row = headers.map(header => {
-            let value = product[header];
-            if (value === null || value === undefined) {
-                value = '';
-            }
+        const row = dataKeys.map(key => {
+            let value = product[key];
+            if (value === null || value === undefined) value = '';
 
             if (typeof value === 'string') {
                 value = value.toUpperCase();
@@ -148,21 +175,22 @@ function downloadCartCSV() {
         csvContent += row.join(",") + "\n";
     });
 
-    const encodedUri = encodeURI(csvContent);
-    const link = document.createElement("a");
-
-    // Membuat nama file dinamis berdasarkan tanggal dan waktu
+    const cleanStoreName = (storeName.trim() || "TANPA_NAMA").replace(/[^a-zA-Z0-9_\-]+/g, '_');
     const now = new Date();
     const pad = (num) => num.toString().padStart(2, '0');
-    const timestamp = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}_${pad(now.getHours())}-${pad(now.getMinutes())}-${pad(now.getSeconds())}`;
-    const filename = `keranjang_${timestamp}.csv`;
+    const timestamp = `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}_${pad(now.getHours())}${pad(now.getMinutes())}`;
+    const filename = `${cleanStoreName}_${timestamp}.csv`;
 
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
     link.setAttribute("href", encodedUri);
     link.setAttribute("download", filename);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+    showToast("Unduhan CSV dimulai...");
 }
+
 
 // Event Listeners for Modal
 confirmBtn.addEventListener('click', removeFromCart);

@@ -90,10 +90,22 @@ window.submitUpdate = async function(originalSku) {
 // Attached to the AI enrich button
 window.fetchAiData = async function() {
     const skuInput = document.getElementById('SKU');
+    const nameHintInput = document.getElementById('ITEMS_NAME');
     const sku = skuInput.value.trim();
+    const nameHint = nameHintInput.value.trim();
+
     if (!sku) {
-        alert('Masukkan SKU untuk diperkaya dengan AI.');
+        alert('Harap masukkan SKU terlebih dahulu.');
+        skuInput.focus();
         return;
+    }
+    
+    if (!nameHint) {
+        const proceed = confirm("Nama Produk masih kosong. Hasil AI mungkin kurang akurat. Lanjutkan?");
+        if (!proceed) {
+            nameHintInput.focus();
+            return; 
+        }
     }
 
     const aiProviderSelect = document.getElementById('ai-provider-select');
@@ -106,14 +118,11 @@ window.fetchAiData = async function() {
     aiProviderSelect.disabled = true;
 
     try {
-        // Pass the selected provider to the enrichWithAI function
-        const aiData = await enrichWithAI(sku, provider);
+        const aiData = await enrichWithAI(sku, nameHint, provider);
         
-        // Populate the form with the data received from the AI
         for (const key in aiData) {
-            const input = document.getElementById(key.toUpperCase()); // Ensure matching with uppercase IDs
+            const input = document.getElementById(key.toUpperCase()); 
             if (input) {
-                // Uppercase the data from AI as well before populating
                 input.value = typeof aiData[key] === 'string' ? aiData[key].toUpperCase() : aiData[key];
             }
         }
@@ -126,66 +135,6 @@ window.fetchAiData = async function() {
         aiProviderSelect.disabled = false;
     }
 };
-
-// --- Download All Products CSV Function (Global) ---
-window.downloadAllProductsCSV = async function() {
-    console.log("Memulai unduhan CSV semua produk...");
-    const button = document.getElementById('download-csv-btn');
-    if(button) {
-        button.innerHTML = 'Mengunduh...';
-        button.disabled = true;
-    }
-
-    try {
-        const products = await searchProducts('*'); 
-        if (!products || products.length === 0) {
-            alert("Tidak ada produk untuk diunduh.");
-            return;
-        }
-
-        const headers = ["SKU", "ITEMS_NAME", "CATEGORY", "BRAND_NAME", "VARIANT_NAME", "PRICE"];
-        let csvContent = "data:text/csv;charset=utf-8," + headers.join(",") + "\n";
-
-        products.forEach(product => {
-            const row = headers.map(header => {
-                let value = product[header];
-                if (value === null || value === undefined) value = '';
-
-                // Convert to string and then to uppercase if it's a string field
-                if (typeof value === 'string') {
-                    value = value.toUpperCase();
-                } else {
-                    value = String(value);
-                }
-
-                let stringValue = value.replace(/"/g, '""'); // Escape double quotes
-                if (stringValue.includes(',')) {
-                    stringValue = `"${stringValue}"`; // Enclose in double quotes if it contains a comma
-                }
-                return stringValue;
-            });
-            csvContent += row.join(",") + "\n";
-        });
-
-        const encodedUri = encodeURI(csvContent);
-        const link = document.createElement("a");
-        link.setAttribute("href", encodedUri);
-        link.setAttribute("download", "semua_produk_uppercase.csv");
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-
-    } catch (error) {
-        console.error("Gagal mengunduh CSV:", error);
-        alert(`Gagal mengunduh CSV: ${error.message}`);
-    } finally {
-         if(button) {
-            button.innerHTML = 'Unduh Semua Produk';
-            button.disabled = false;
-        }
-    }
-};
-
 
 // --- Scanner Functions ---
 let html5QrcodeScanner;
