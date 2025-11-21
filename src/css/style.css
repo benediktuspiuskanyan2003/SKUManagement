@@ -400,3 +400,52 @@ h1, h2, h3 { text-align: center; }
     font-size: 16px;
     box-sizing: border-box;
 }
+
+
+/* ==========================================
+   FIX RESPONSIF UNTUK TOMBOL FORM + AI
+   ========================================== */
+
+/* Desktop – tetap seperti biasa */
+.form-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.ai-controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+/* Mobile */
+@media (max-width: 480px) {
+
+    /* Semua tombol ditumpuk vertikal */
+    .form-buttons {
+        flex-direction: column;
+        justify-content: flex-start;
+        align-items: stretch;
+    }
+
+    /* Grup AI ditumpuk rapi */
+    .ai-controls {
+        flex-direction: column;
+        width: 100%;
+    }
+
+    /* Select provider & tombol AI full width */
+    #ai-provider-select,
+    .btn-ai,
+    .ai-controls .btn-secondary {
+        width: 100%;
+    }
+
+    /* Tombol Simpan & Batal ikut melebar */
+    .form-buttons .btn,
+    .form-buttons .btn-secondary {
+        width: 100%;
+    }
+
+}
